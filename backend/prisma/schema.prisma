@@ -1,0 +1,393 @@
+// =============================================================================
+// پلتفرم آموزشی فارسی - Prisma Schema
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// نقش‌ها - Roles
+// =============================================================================
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // admin, instructor, user
+  nameFA      String   @map("name_fa") // ادمین، مدرس، کاربر
+  description String?
+  
+  users       User[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+// =============================================================================
+// کاربران - Users
+// =============================================================================
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String?   @unique
+  password      String
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  avatar        String?
+  isActive      Boolean   @default(true) @map("is_active")
+  isVerified    Boolean   @default(false) @map("is_verified")
+  
+  roleId        String    @map("role_id")
+  role          Role      @relation(fields: [roleId], references: [id])
+  
+  courses       UserCourse[]
+  orders        Order[]
+  videoProgress VideoProgress[]
+  refreshTokens RefreshToken[]
+
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([phone])
+  @@index([roleId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// =============================================================================
+// دسته‌بندی‌ها - Categories
+// =============================================================================
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  nameFA      String     @map("name_fa")
+  slug        String     @unique
+  description String?
+  icon        String?
+  sortOrder   Int        @default(0) @map("sort_order")
+  isActive    Boolean    @default(true) @map("is_active")
+  
+  parentId    String?    @map("parent_id")
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  
+  courses     Course[]
+  
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+// =============================================================================
+// دوره‌ها - Courses
+// =============================================================================
+model Course {
+  id              String       @id @default(uuid())
+  title           String
+  slug            String       @unique
+  description     String
+  shortDesc       String?      @map("short_desc")
+  thumbnail       String?
+  previewVideo    String?      @map("preview_video")
+  
+  price           Decimal      @db.Decimal(12, 0)
+  discountPrice   Decimal?     @map("discount_price") @db.Decimal(12, 0)
+  discountExpiry  DateTime?    @map("discount_expiry")
+  
+  duration        Int          @default(0)
+  lessonsCount    Int          @default(0) @map("lessons_count")
+  studentsCount   Int          @default(0) @map("students_count")
+  
+  level           CourseLevel  @default(BEGINNER)
+  status          CourseStatus @default(DRAFT)
+  isFeatured      Boolean      @default(false) @map("is_featured")
+  
+  categoryId      String       @map("category_id")
+  category        Category     @relation(fields: [categoryId], references: [id])
+  
+  lessons         Lesson[]
+  userCourses     UserCourse[]
+  orderItems      OrderItem[]
+  
+  metaTitle       String?      @map("meta_title")
+  metaDescription String?      @map("meta_description")
+  
+  deletedAt       DateTime?    @map("deleted_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([status, isFeatured])
+  @@map("courses")
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// =============================================================================
+// درس‌ها - Lessons
+// =============================================================================
+model Lesson {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isFree      Boolean  @default(false) @map("is_free")
+  isPublished Boolean  @default(false) @map("is_published")
+  
+  courseId    String   @map("course_id")
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  video       Video?
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([courseId])
+  @@index([sortOrder])
+  @@index([courseId, sortOrder])
+  @@map("lessons")
+}
+
+// =============================================================================
+// ویدیوها - Videos
+// =============================================================================
+model Video {
+  id           String        @id @default(uuid())
+  filename     String
+  originalName String        @map("original_name")
+  storagePath  String        @map("storage_path")
+  storageKey   String        @unique @map("storage_key")
+  
+  duration     Int           @default(0)
+  size         BigInt        @default(0)
+  mimeType     String        @default("video/mp4") @map("mime_type")
+  
+  status       VideoStatus   @default(PROCESSING)
+  
+  lessonId     String        @unique @map("lesson_id")
+  lesson       Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  progress     VideoProgress[]
+  
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@index([storageKey])
+  @@index([status])
+  @@map("videos")
+}
+
+enum VideoStatus {
+  PROCESSING
+  READY
+  ERROR
+}
+
+// =============================================================================
+// پیشرفت ویدیو - Video Progress
+// =============================================================================
+model VideoProgress {
+  id             String   @id @default(uuid())
+  
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  videoId        String   @map("video_id")
+  video          Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  
+  watchedSeconds Int      @default(0) @map("watched_seconds")
+  totalSeconds   Int      @default(0) @map("total_seconds")
+  isCompleted    Boolean  @default(false) @map("is_completed")
+  lastPosition   Int      @default(0) @map("last_position")
+  
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+  @@map("video_progress")
+}
+
+// =============================================================================
+// ثبت‌نام دوره - User Courses
+// =============================================================================
+model UserCourse {
+  id          String    @id @default(uuid())
+  
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  courseId    String    @map("course_id")
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  progress    Int       @default(0)
+  completedAt DateTime? @map("completed_at")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("user_courses")
+}
+
+// =============================================================================
+// سفارش‌ها - Orders
+// =============================================================================
+model Order {
+  id             String      @id @default(uuid())
+  orderNumber    String      @unique @map("order_number")
+  
+  userId         String      @map("user_id")
+  user           User        @relation(fields: [userId], references: [id])
+  
+  totalAmount    Decimal     @map("total_amount") @db.Decimal(12, 0)
+  discountAmount Decimal     @default(0) @map("discount_amount") @db.Decimal(12, 0)
+  finalAmount    Decimal     @map("final_amount") @db.Decimal(12, 0)
+  
+  status         OrderStatus @default(PENDING)
+  
+  items          OrderItem[]
+  payment        Payment?
+  
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// =============================================================================
+// آیتم سفارش - Order Items
+// =============================================================================
+model OrderItem {
+  id        String   @id @default(uuid())
+  
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  courseId  String   @map("course_id")
+  course    Course   @relation(fields: [courseId], references: [id])
+  
+  price     Decimal  @db.Decimal(12, 0)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@index([courseId])
+  @@map("order_items")
+}
+
+// =============================================================================
+// پرداخت‌ها - Payments
+// =============================================================================
+model Payment {
+  id         String         @id @default(uuid())
+  
+  orderId    String         @unique @map("order_id")
+  order      Order          @relation(fields: [orderId], references: [id])
+  
+  amount     Decimal        @db.Decimal(12, 0)
+  gateway    PaymentGateway
+  
+  authority  String?
+  refId      String?        @map("ref_id")
+  cardNumber String?        @map("card_number")
+  
+  status     PaymentStatus  @default(PENDING)
+  paidAt     DateTime?      @map("paid_at")
+  
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@index([authority])
+  @@index([refId])
+  @@index([status])
+  @@index([status, paidAt])
+  @@map("payments")
+}
+
+enum PaymentGateway {
+  ZARINPAL
+  IDPAY
+  NEXTPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// =============================================================================
+// تنظیمات - Settings
+// =============================================================================
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string")
+  group     String   @default("general")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@index([group])
+  @@map("settings")
+}
+
+// =============================================================================
+// توکن‌های بازنشانی - Refresh Tokens
+// =============================================================================
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
