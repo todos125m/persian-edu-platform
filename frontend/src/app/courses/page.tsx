@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Filter } from 'lucide-react';
-import { Header, Footer } from '@/components/layout';
 import { CourseCard, Button } from '@/components/ui';
 import { coursesService } from '@/services/coursesService';
 import api from '@/lib/api';
@@ -75,7 +74,6 @@ function CoursesContent() {
 
   return (
     <>
-      <Header />
       <main className="min-h-screen bg-gray-50">
         {/* Hero Section */}
         <section className="bg-gradient-to-l from-primary-600 to-primary-700 py-16">
@@ -227,7 +225,6 @@ function CoursesContent() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }
