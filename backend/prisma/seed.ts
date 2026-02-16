@@ -86,10 +86,32 @@ async function main() {
   console.log('⚙️ ایجاد تنظیمات پیش‌فرض...');
 
   const settings = [
+    // عمومی
     { key: 'site_name', value: 'آکادمی آموزش', type: 'string', group: 'general' },
     { key: 'site_description', value: 'پلتفرم آموزش آنلاین فارسی', type: 'string', group: 'general' },
+    { key: 'site_logo', value: '', type: 'string', group: 'general' },
+    { key: 'site_favicon', value: '', type: 'string', group: 'general' },
+    { key: 'site_copyright', value: '© تمامی حقوق برای آکادمی محفوظ است', type: 'string', group: 'general' },
+    // بنر اصلی
+    { key: 'hero_title', value: 'مهارت‌های جدید یاد بگیرید و آینده‌تان را بسازید', type: 'string', group: 'hero' },
+    { key: 'hero_subtitle', value: 'با بهترین دوره‌های آموزشی فارسی در زمینه برنامه‌نویسی، طراحی و کسب‌وکار، مسیر حرفه‌ای خود را شروع کنید', type: 'string', group: 'hero' },
+    { key: 'hero_search_placeholder', value: 'دنبال چه دوره‌ای می‌گردید؟', type: 'string', group: 'hero' },
+    { key: 'hero_btn_primary', value: 'مشاهده دوره‌ها', type: 'string', group: 'hero' },
+    { key: 'hero_btn_secondary', value: 'ویدیو معرفی', type: 'string', group: 'hero' },
+    // آمار
+    { key: 'stats_students', value: '۱۵,۰۰۰+', type: 'string', group: 'stats' },
+    { key: 'stats_courses', value: '۲۵۰+', type: 'string', group: 'stats' },
+    { key: 'stats_instructors', value: '۵۰+', type: 'string', group: 'stats' },
+    { key: 'stats_hours', value: '۱,۵۰۰+', type: 'string', group: 'stats' },
+    // بخش CTA
+    { key: 'cta_badge', value: 'شروع کنید - رایگان', type: 'string', group: 'cta' },
+    { key: 'cta_title', value: 'همین امروز یادگیری را شروع کنید', type: 'string', group: 'cta' },
+    { key: 'cta_subtitle', value: 'با ثبت‌نام رایگان، به بخشی از دوره‌ها دسترسی پیدا کنید و مسیر حرفه‌ای خود را شروع کنید', type: 'string', group: 'cta' },
+    // تماس
     { key: 'contact_email', value: 'info@example.com', type: 'string', group: 'contact' },
     { key: 'contact_phone', value: '021-12345678', type: 'string', group: 'contact' },
+    { key: 'contact_address', value: 'تهران، خیابان آزادی', type: 'string', group: 'contact' },
+    // شبکه‌های اجتماعی
     { key: 'social_instagram', value: '', type: 'string', group: 'social' },
     { key: 'social_telegram', value: '', type: 'string', group: 'social' },
     { key: 'social_linkedin', value: '', type: 'string', group: 'social' },

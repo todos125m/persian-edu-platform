@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   BookOpen,
@@ -8,6 +10,7 @@ import {
   Send,
   Linkedin,
 } from 'lucide-react';
+import { useSettingsStore } from '@/store';
 
 const footerLinks = {
   quickLinks: [
@@ -31,6 +34,17 @@ const footerLinks = {
 };
 
 export function Footer() {
+  const get = useSettingsStore((s) => s.get);
+  const siteName = get('site_name', 'آکادمی');
+  const siteLogo = get('site_logo');
+  const copyright = get('site_copyright', `© تمامی حقوق برای ${siteName} محفوظ است`);
+  const contactPhone = get('contact_phone', '021-1234-5678');
+  const contactEmail = get('contact_email', 'info@academy.ir');
+  const contactAddress = get('contact_address', 'تهران، خیابان آزادی');
+  const socialInstagram = get('social_instagram');
+  const socialTelegram = get('social_telegram');
+  const socialLinkedin = get('social_linkedin');
+
   return (
     <footer className="bg-gray-900 text-gray-300">
       {/* Main Footer */}
@@ -39,34 +53,62 @@ export function Footer() {
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">آکادمی</span>
+              {siteLogo ? (
+                <img src={siteLogo} alt={siteName} className="h-10 w-10 object-contain rounded-xl" />
+              ) : (
+                <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+              )}
+              <span className="text-xl font-bold text-white">{siteName}</span>
             </Link>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              پلتفرم آموزش آنلاین با بهترین دوره‌های ویدیویی در زمینه‌های مختلف
-              برنامه‌نویسی، طراحی و کسب‌وکار
+              {get('site_description', 'پلتفرم آموزش آنلاین با بهترین دوره‌های ویدیویی در زمینه‌های مختلف برنامه‌نویسی، طراحی و کسب‌وکار')}
             </p>
             <div className="flex gap-3">
-              <a
-                href="#"
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"
-              >
-                <Send className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"
-              >
-                <Linkedin className="w-5 h-5" />
-              </a>
+              {socialInstagram && (
+                <a
+                  href={socialInstagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {socialTelegram && (
+                <a
+                  href={socialTelegram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"
+                >
+                  <Send className="w-5 h-5" />
+                </a>
+              )}
+              {socialLinkedin && (
+                <a
+                  href={socialLinkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary-600 transition-colors"
+                >
+                  <Linkedin className="w-5 h-5" />
+                </a>
+              )}
+              {!socialInstagram && !socialTelegram && !socialLinkedin && (
+                <>
+                  <span className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                    <Instagram className="w-5 h-5" />
+                  </span>
+                  <span className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                    <Send className="w-5 h-5" />
+                  </span>
+                  <span className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
+                    <Linkedin className="w-5 h-5" />
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -113,7 +155,7 @@ export function Footer() {
                 <div>
                   <p className="text-gray-400 text-sm">تلفن پشتیبانی</p>
                   <p className="text-white" dir="ltr">
-                    021-1234-5678
+                    {contactPhone}
                   </p>
                 </div>
               </li>
@@ -122,7 +164,7 @@ export function Footer() {
                 <div>
                   <p className="text-gray-400 text-sm">ایمیل</p>
                   <p className="text-white" dir="ltr">
-                    info@academy.ir
+                    {contactEmail}
                   </p>
                 </div>
               </li>
@@ -130,7 +172,7 @@ export function Footer() {
                 <MapPin className="w-5 h-5 text-primary-500 mt-0.5" />
                 <div>
                   <p className="text-gray-400 text-sm">آدرس</p>
-                  <p className="text-white">تهران، خیابان آزادی</p>
+                  <p className="text-white">{contactAddress}</p>
                 </div>
               </li>
             </ul>
@@ -142,7 +184,7 @@ export function Footer() {
       <div className="border-t border-gray-800">
         <div className="container py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-500 text-sm">
-            © تمامی حقوق برای آکادمی محفوظ است - ۱۴۰۳
+            {copyright}
           </p>
           <div className="flex items-center gap-4">
             {footerLinks.support.map((link) => (

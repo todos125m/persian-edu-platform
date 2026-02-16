@@ -1,35 +1,38 @@
 'use client';
 
 import { Users, BookOpen, Award, PlayCircle } from 'lucide-react';
-
-const stats = [
-  {
-    icon: Users,
-    value: '۱۵,۰۰۰+',
-    label: 'دانشجوی فعال',
-    description: 'در حال یادگیری',
-  },
-  {
-    icon: BookOpen,
-    value: '۲۵۰+',
-    label: 'دوره آموزشی',
-    description: 'در دسته‌های مختلف',
-  },
-  {
-    icon: Award,
-    value: '۵۰+',
-    label: 'مدرس حرفه‌ای',
-    description: 'با تجربه عملی',
-  },
-  {
-    icon: PlayCircle,
-    value: '۱,۵۰۰+',
-    label: 'ساعت ویدیو',
-    description: 'آموزش عملی',
-  },
-];
+import { useSettingsStore } from '@/store';
 
 export function StatsSection() {
+  const get = useSettingsStore((s) => s.get);
+
+  const stats = [
+    {
+      icon: Users,
+      value: get('stats_students', '۱۵,۰۰۰+'),
+      label: 'دانشجوی فعال',
+      description: 'در حال یادگیری',
+    },
+    {
+      icon: BookOpen,
+      value: get('stats_courses', '۲۵۰+'),
+      label: 'دوره آموزشی',
+      description: 'در دسته‌های مختلف',
+    },
+    {
+      icon: Award,
+      value: get('stats_instructors', '۵۰+'),
+      label: 'مدرس حرفه‌ای',
+      description: 'با تجربه عملی',
+    },
+    {
+      icon: PlayCircle,
+      value: get('stats_hours', '۱,۵۰۰+'),
+      label: 'ساعت ویدیو',
+      description: 'آموزش عملی',
+    },
+  ];
+
   return (
     <section className="py-16 bg-primary-600">
       <div className="container">

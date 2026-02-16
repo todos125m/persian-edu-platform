@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { Search, Play, Users, BookOpen, Award } from 'lucide-react';
-import { toPersianNumber } from '@/lib/utils';
+import { useSettingsStore } from '@/store';
 
 export function HeroSection() {
+  const get = useSettingsStore((s) => s.get);
+
   return (
     <section className="relative bg-gradient-to-bl from-primary-600 via-primary-700 to-primary-900 overflow-hidden">
       {/* Background Pattern */}
@@ -22,20 +24,17 @@ export function HeroSection() {
           {/* Content */}
           <div className="text-white text-center lg:text-right">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-6">
-              مهارت‌های جدید یاد بگیرید و
-              <span className="text-yellow-400"> آینده‌تان </span>
-              را بسازید
+              {get('hero_title', 'مهارت‌های جدید یاد بگیرید و آینده‌تان را بسازید')}
             </h1>
             <p className="text-lg md:text-xl text-primary-100 mb-8 leading-relaxed">
-              با بهترین دوره‌های آموزشی فارسی در زمینه برنامه‌نویسی، طراحی و
-              کسب‌وکار، مسیر حرفه‌ای خود را شروع کنید
+              {get('hero_subtitle', 'با بهترین دوره‌های آموزشی فارسی در زمینه برنامه‌نویسی، طراحی و کسب‌وکار، مسیر حرفه‌ای خود را شروع کنید')}
             </p>
 
             {/* Search Box */}
             <div className="relative max-w-xl mx-auto lg:mx-0 mb-8">
               <input
                 type="text"
-                placeholder="دنبال چه دوره‌ای می‌گردید؟"
+                placeholder={get('hero_search_placeholder', 'دنبال چه دوره‌ای می‌گردید؟')}
                 className="w-full px-6 py-4 pr-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:bg-white/20 focus:border-white/40 transition-all"
               />
               <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" />
@@ -50,11 +49,11 @@ export function HeroSection() {
                 href="/courses"
                 className="btn bg-white text-primary-700 hover:bg-gray-100 btn-lg"
               >
-                مشاهده دوره‌ها
+                {get('hero_btn_primary', 'مشاهده دوره‌ها')}
               </Link>
               <button className="btn border-2 border-white/30 text-white hover:bg-white/10 btn-lg">
                 <Play className="w-5 h-5" />
-                ویدیو معرفی
+                {get('hero_btn_secondary', 'ویدیو معرفی')}
               </button>
             </div>
           </div>
@@ -64,26 +63,26 @@ export function HeroSection() {
             <div className="grid grid-cols-2 gap-4">
               <StatCard
                 icon={<Users className="w-6 h-6" />}
-                value="۱۵,۰۰۰+"
+                value={get('stats_students', '۱۵,۰۰۰+')}
                 label="دانشجوی فعال"
                 color="bg-white"
               />
               <StatCard
                 icon={<BookOpen className="w-6 h-6" />}
-                value="۲۵۰+"
+                value={get('stats_courses', '۲۵۰+')}
                 label="دوره آموزشی"
                 color="bg-yellow-400"
                 className="mt-8"
               />
               <StatCard
                 icon={<Award className="w-6 h-6" />}
-                value="۵۰+"
+                value={get('stats_instructors', '۵۰+')}
                 label="مدرس حرفه‌ای"
                 color="bg-green-400"
               />
               <StatCard
                 icon={<Play className="w-6 h-6" />}
-                value="۱,۵۰۰+"
+                value={get('stats_hours', '۱,۵۰۰+')}
                 label="ساعت ویدیو"
                 color="bg-white"
                 className="mt-8"
@@ -94,10 +93,10 @@ export function HeroSection() {
 
         {/* Mobile Stats */}
         <div className="lg:hidden mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <MobileStat value="۱۵,۰۰۰+" label="دانشجو" />
-          <MobileStat value="۲۵۰+" label="دوره" />
-          <MobileStat value="۵۰+" label="مدرس" />
-          <MobileStat value="۱,۵۰۰+" label="ساعت ویدیو" />
+          <MobileStat value={get('stats_students', '۱۵,۰۰۰+')} label="دانشجو" />
+          <MobileStat value={get('stats_courses', '۲۵۰+')} label="دوره" />
+          <MobileStat value={get('stats_instructors', '۵۰+')} label="مدرس" />
+          <MobileStat value={get('stats_hours', '۱,۵۰۰+')} label="ساعت ویدیو" />
         </div>
       </div>
     </section>

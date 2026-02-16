@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore } from '@/store/settingsStore';
 
 // Routes that have their own layout (no main Header/Footer)
 const noLayoutRoutes = ['/login', '/register', '/forgot-password', '/admin'];
@@ -24,6 +25,12 @@ function CookieSync() {
   return null;
 }
 
+function SettingsLoader() {
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  return null;
+}
+
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
@@ -34,6 +41,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       <CookieSync />
+      <SettingsLoader />
       {!hideLayout && <Header />}
       <main className="flex-1">{children}</main>
       {!hideLayout && <Footer />}

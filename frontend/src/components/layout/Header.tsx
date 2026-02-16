@@ -16,7 +16,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useCartStore } from '@/store';
+import { useAuthStore, useCartStore, useSettingsStore } from '@/store';
 
 const navLinks = [
   { href: '/', label: 'صفحه اصلی' },
@@ -32,6 +32,9 @@ export function Header() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuthStore();
   const itemsCount = useCartStore((state) => state.itemsCount());
+  const getSetting = useSettingsStore((s) => s.get);
+  const siteName = getSetting('site_name', 'آکادمی');
+  const siteLogo = getSetting('site_logo');
 
   const handleLogout = () => {
     logout();
@@ -44,10 +47,14 @@ export function Header() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">آکادمی</span>
+            {siteLogo ? (
+              <img src={siteLogo} alt={siteName} className="h-10 w-10 object-contain rounded-xl" />
+            ) : (
+              <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-white" />
+              </div>
+            )}
+            <span className="text-xl font-bold text-gray-900">{siteName}</span>
           </Link>
 
           {/* Desktop Navigation */}
