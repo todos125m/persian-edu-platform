@@ -321,4 +321,83 @@ export const adminService = {
     const { data } = await api.put('/settings', { settings });
     return data;
   },
+
+  // Quizzes
+  getQuizzes: async (params: { page?: number; limit?: number; search?: string }) => {
+    const { data } = await api.get('/quizzes/admin/all', { params });
+    return data;
+  },
+
+  createQuiz: async (quizData: any) => {
+    const { data } = await api.post('/quizzes/admin', quizData);
+    return data;
+  },
+
+  updateQuiz: async (id: string, quizData: any) => {
+    const { data } = await api.patch(`/quizzes/admin/${id}`, quizData);
+    return data;
+  },
+
+  deleteQuiz: async (id: string) => {
+    const { data } = await api.delete(`/quizzes/admin/${id}`);
+    return data;
+  },
+
+  addQuizQuestion: async (quizId: string, questionData: any) => {
+    const { data } = await api.post(`/quizzes/admin/${quizId}/questions`, questionData);
+    return data;
+  },
+
+  updateQuizQuestion: async (questionId: string, questionData: any) => {
+    const { data } = await api.patch(`/quizzes/admin/questions/${questionId}`, questionData);
+    return data;
+  },
+
+  deleteQuizQuestion: async (questionId: string) => {
+    const { data } = await api.delete(`/quizzes/admin/questions/${questionId}`);
+    return data;
+  },
+
+  // Reviews
+  getReviews: async (params: { page?: number; limit?: number; approved?: string }) => {
+    const { data } = await api.get('/reviews/admin/all', { params });
+    return data;
+  },
+
+  toggleReviewApproval: async (id: string) => {
+    const { data } = await api.patch(`/reviews/admin/${id}/toggle`);
+    return data;
+  },
+
+  deleteReview: async (id: string) => {
+    const { data } = await api.delete(`/reviews/admin/${id}`);
+    return data;
+  },
+
+  // Discount Codes
+  getDiscountCodes: async (params: { page?: number; limit?: number }) => {
+    const { data } = await api.get('/discount-codes/admin/all', { params });
+    return data;
+  },
+
+  createDiscountCode: async (codeData: any) => {
+    const { data } = await api.post('/discount-codes/admin', codeData);
+    return data;
+  },
+
+  updateDiscountCode: async (id: string, codeData: any) => {
+    const { data } = await api.patch(`/discount-codes/admin/${id}`, codeData);
+    return data;
+  },
+
+  deleteDiscountCode: async (id: string) => {
+    const { data } = await api.delete(`/discount-codes/admin/${id}`);
+    return data;
+  },
+
+  // Certificates
+  getCertificates: async (params: { page?: number; limit?: number }) => {
+    const { data } = await api.get('/certificates/admin/all', { params });
+    return data;
+  },
 };

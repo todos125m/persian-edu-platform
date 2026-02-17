@@ -13,7 +13,7 @@ export class OrdersService {
   ) {}
 
   // User: Create order
-  async create(userId: string, courseIds: string[]) {
+  async create(userId: string, courseIds: string[], couponCode?: string) {
     // Validate courses exist and get prices
     const courses = await this.prisma.course.findMany({
       where: {
@@ -61,7 +61,38 @@ export class OrdersService {
       };
     });
 
-    const finalAmount = totalAmount - discountAmount;
+    let finalAmount = totalAmount - discountAmount;
+
+    // Apply coupon code if provided
+    let appliedCoupon: string | null = null;
+    if (couponCode) {
+      const coupon = await this.prisma.discountCode.findUnique({
+        where: { code: couponCode.toUpperCase() },
+      });
+      if (coupon && coupon.isActive) {
+        const notExpired = !coupon.expiresAt || coupon.expiresAt > new Date();
+        const hasCapacity = !coupon.maxUses || coupon.usedCount < coupon.maxUses;
+        const meetsMin = !coupon.minAmount || finalAmount >= Number(coupon.minAmount);
+
+        if (notExpired && hasCapacity && meetsMin) {
+          let couponDiscount: number;
+          if (coupon.type === 'PERCENT') {
+            couponDiscount = Math.round((finalAmount * Number(coupon.value)) / 100);
+          } else {
+            couponDiscount = Math.min(Number(coupon.value), finalAmount);
+          }
+          discountAmount += couponDiscount;
+          finalAmount -= couponDiscount;
+          appliedCoupon = coupon.code;
+
+          // Increment usage
+          await this.prisma.discountCode.update({
+            where: { id: coupon.id },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+      }
+    }
 
     // Generate order number
     const orderNumber = this.generateOrderNumber();
@@ -74,6 +105,7 @@ export class OrdersService {
         totalAmount,
         discountAmount,
         finalAmount,
+        couponCode: appliedCoupon,
         items: {
           create: orderItems,
         },

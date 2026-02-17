@@ -17,6 +17,10 @@ import {
   X,
   Eye,
   Shield,
+  ClipboardCheck,
+  Star,
+  Ticket,
+  Award,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -25,9 +29,12 @@ import { cn } from '@/lib/utils';
 const adminMenuItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'داشبورد' },
   { href: '/admin/courses', icon: BookOpen, label: 'دوره‌ها' },
+  { href: '/admin/quizzes', icon: ClipboardCheck, label: 'آزمون‌ها' },
   { href: '/admin/users', icon: Users, label: 'کاربران' },
   { href: '/admin/orders', icon: ShoppingCart, label: 'سفارش‌ها' },
   { href: '/admin/payments', icon: CreditCard, label: 'مالی' },
+  { href: '/admin/reviews', icon: Star, label: 'نظرات' },
+  { href: '/admin/discount-codes', icon: Ticket, label: 'کد تخفیف' },
   { href: '/admin/categories', icon: FolderTree, label: 'دسته‌بندی‌ها' },
   { href: '/admin/settings', icon: Settings, label: 'تنظیمات' },
 ];

@@ -10,6 +10,9 @@ import {
   ArrowRight,
   ShoppingBag,
   Tag,
+  Ticket,
+  Check,
+  X,
 } from 'lucide-react';
 import { useCartStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
@@ -25,6 +28,39 @@ export default function CartPage() {
   const { isAuthenticated } = useAuthStore();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountAmount: number;
+    finalAmount: number;
+  } | null>(null);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    try {
+      const result = await ordersService.validateCoupon(couponCode.trim(), finalPrice());
+      setAppliedCoupon({
+        code: result.code,
+        discountAmount: result.discountAmount,
+        finalAmount: result.finalAmount,
+      });
+      toast.success('کد تخفیف اعمال شد');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'کد تخفیف نامعتبر است');
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
+
   const handleCheckout = async () => {
     if (!isAuthenticated) {
       router.push('/login?redirect=/cart');
@@ -36,7 +72,7 @@ export default function CartPage() {
     setIsCheckingOut(true);
     try {
       const courseIds = items.map((item) => item.id);
-      const order = await ordersService.create(courseIds);
+      const order = await ordersService.create(courseIds, appliedCoupon?.code);
       const payment = await ordersService.initiatePayment(order.id);
       clearCart();
       window.location.href = payment.paymentUrl;
@@ -62,6 +98,8 @@ export default function CartPage() {
       </div>
     );
   }
+
+  const payableAmount = appliedCoupon ? appliedCoupon.finalAmount : finalPrice();
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -146,6 +184,46 @@ export default function CartPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-24">
               <h2 className="text-lg font-bold text-gray-900 mb-4">خلاصه سفارش</h2>
 
+              {/* Coupon Code */}
+              <div className="mb-4">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm font-medium">کد {appliedCoupon.code} اعمال شد</span>
+                    </div>
+                    <button
+                      onClick={removeCoupon}
+                      className="text-green-600 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="کد تخفیف"
+                      dir="ltr"
+                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+                      onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplyCoupon}
+                      isLoading={couponLoading}
+                      className="whitespace-nowrap"
+                    >
+                      <Ticket className="w-4 h-4 ml-1" />
+                      اعمال
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">جمع کل</span>
@@ -158,10 +236,22 @@ export default function CartPage() {
                   <div className="flex items-center justify-between text-green-600">
                     <span className="flex items-center gap-1">
                       <Tag className="w-4 h-4" />
-                      تخفیف
+                      تخفیف دوره
                     </span>
                     <span className="font-medium">
                       {formatPrice(totalDiscount())}
+                    </span>
+                  </div>
+                )}
+
+                {appliedCoupon && (
+                  <div className="flex items-center justify-between text-green-600">
+                    <span className="flex items-center gap-1">
+                      <Ticket className="w-4 h-4" />
+                      کد تخفیف
+                    </span>
+                    <span className="font-medium">
+                      {formatPrice(appliedCoupon.discountAmount)}
                     </span>
                   </div>
                 )}
@@ -171,7 +261,7 @@ export default function CartPage() {
                 <div className="flex items-center justify-between text-base">
                   <span className="font-bold text-gray-900">مبلغ قابل پرداخت</span>
                   <span className="font-bold text-primary-600">
-                    {formatPrice(finalPrice())}
+                    {formatPrice(payableAmount)}
                   </span>
                 </div>
               </div>

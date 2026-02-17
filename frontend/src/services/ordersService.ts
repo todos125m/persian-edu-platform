@@ -28,8 +28,14 @@ export interface OrderItem {
 
 export const ordersService = {
   // Create order
-  create: async (courseIds: string[]): Promise<Order> => {
-    const response = await api.post('/orders', { courseIds });
+  create: async (courseIds: string[], couponCode?: string): Promise<Order> => {
+    const response = await api.post('/orders', { courseIds, couponCode });
+    return response.data;
+  },
+
+  // Validate coupon
+  validateCoupon: async (code: string, totalAmount: number) => {
+    const response = await api.post('/discount-codes/validate', { code, totalAmount });
     return response.data;
   },
 

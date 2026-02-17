@@ -20,8 +20,8 @@ export class OrdersController {
 
   // User: Create order
   @Post()
-  create(@Request() req: any, @Body('courseIds') courseIds: string[]) {
-    return this.ordersService.create(req.user.id, courseIds);
+  create(@Request() req: any, @Body() body: { courseIds: string[]; couponCode?: string }) {
+    return this.ordersService.create(req.user.id, body.courseIds, body.couponCode);
   }
 
   // User: Get my orders

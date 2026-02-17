@@ -12,6 +12,8 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardCheck,
+  Award,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -20,6 +22,8 @@ import { cn } from '@/lib/utils';
 const menuItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
   { href: '/dashboard/courses', icon: BookOpen, label: 'دوره‌های من' },
+  { href: '/dashboard/quizzes', icon: ClipboardCheck, label: 'نتایج آزمون' },
+  { href: '/dashboard/certificates', icon: Award, label: 'گواهینامه‌ها' },
   { href: '/dashboard/profile', icon: User, label: 'پروفایل' },
   { href: '/dashboard/settings', icon: Settings, label: 'تنظیمات' },
 ];

@@ -30,12 +30,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const data = await res.json();
       const courses = data.data || data;
 
-      const coursePages: MetadataRoute.Sitemap = courses.map((course: any) => ({
-        url: `${SITE_URL}/courses/${course.slug}`,
-        lastModified: new Date(course.updatedAt || course.createdAt),
-        changeFrequency: 'weekly' as const,
-        priority: 0.8,
-      }));
+      const coursePages: MetadataRoute.Sitemap = courses.map((course: any) => {
+        let lastModified = new Date();
+        try {
+          const d = new Date(course.updatedAt || course.createdAt);
+          if (!isNaN(d.getTime())) lastModified = d;
+        } catch {}
+        return {
+          url: `${SITE_URL}/courses/${course.slug}`,
+          lastModified,
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+        };
+      });
 
       return [...staticPages, ...coursePages];
     }

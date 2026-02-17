@@ -14,6 +14,10 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { QuizzesModule } from './modules/quizzes/quizzes.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { DiscountCodesModule } from './modules/discount-codes/discount-codes.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
 
 @Module({
   imports: [
@@ -45,6 +49,10 @@ import { SettingsModule } from './modules/settings/settings.module';
     CategoriesModule,
     AdminModule,
     SettingsModule,
+    QuizzesModule,
+    ReviewsModule,
+    DiscountCodesModule,
+    CertificatesModule,
   ],
 })
 export class AppModule {}
