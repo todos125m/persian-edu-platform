@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ShoppingCart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShoppingCart, Eye } from 'lucide-react';
 import { adminService, AdminOrder } from '@/services/adminService';
 import { cn, formatPrice, toJalali } from '@/lib/utils';
 import DataTable, { Column } from '@/components/ui/DataTable';
@@ -35,6 +36,7 @@ const statusFilters = [
 ];
 
 export default function AdminOrdersPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
 
@@ -90,6 +92,19 @@ export default function AdminOrdersPage() {
       header: 'تاریخ',
       render: (row) => (
         <span className="text-gray-500">{toJalali(row.createdAt)}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'عملیات',
+      render: (row) => (
+        <button
+          onClick={() => router.push(`/admin/orders/${row.id}`)}
+          className="flex items-center gap-1 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
+        >
+          <Eye className="w-4 h-4" />
+          مشاهده
+        </button>
       ),
     },
   ];
