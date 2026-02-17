@@ -15,6 +15,7 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
+import CourseReviews from './CourseReviews';
 import { ordersService } from '@/services/ordersService';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice, formatDuration } from '@/lib/utils';
@@ -188,6 +189,9 @@ export default function CourseDetailClient({ course }: CourseDetailClientProps) 
                   ))}
                 </div>
               </div>
+
+              {/* Reviews */}
+              <CourseReviews courseId={course.id} />
             </div>
 
             {/* Sidebar */}

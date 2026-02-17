@@ -474,6 +474,88 @@ async function main() {
     console.log(`  ✅ دوره "${courseFields.title}" با ${lessons.length} درس ایجاد شد`);
   }
 
+  // ============ Quizzes ============
+  console.log('📝 ایجاد آزمون‌های نمونه...');
+
+  const quizzesData = [
+    {
+      title: 'آزمون ریاضی دهم - مجموعه و احتمال',
+      slug: 'quiz-math-10-set-probability',
+      description: 'آزمون تستی ۱۰ سوالی از مبحث مجموعه و احتمال ریاضی دهم',
+      duration: 15 * 60,
+      questions: [
+        { question: 'اگر A = {1, 2, 3} و B = {2, 3, 4} باشد، A ∩ B چیست؟', optionA: '{1, 2, 3, 4}', optionB: '{2, 3}', optionC: '{1, 4}', optionD: '{1}', correctOption: 'B', explanation: 'اشتراک دو مجموعه شامل عناصر مشترک است' },
+        { question: 'تعداد زیرمجموعه‌های مجموعه {a, b, c} چقدر است؟', optionA: '۳', optionB: '۶', optionC: '۸', optionD: '۹', correctOption: 'C', explanation: 'تعداد زیرمجموعه‌ها = 2^n = 2^3 = 8' },
+        { question: 'اگر n(A) = 5 و n(B) = 3 و n(A ∩ B) = 2 باشد، n(A ∪ B) چقدر است؟', optionA: '۴', optionB: '۶', optionC: '۸', optionD: '۱۰', correctOption: 'B', explanation: 'n(A∪B) = n(A) + n(B) - n(A∩B) = 5 + 3 - 2 = 6' },
+        { question: 'از بین اعداد ۱ تا ۱۰، احتمال انتخاب عدد زوج چقدر است؟', optionA: '۱/۲', optionB: '۱/۳', optionC: '۱/۵', optionD: '۲/۵', correctOption: 'A', explanation: 'اعداد زوج: 2,4,6,8,10 → 5/10 = 1/2' },
+        { question: 'متمم مجموعه A نسبت به U کدام است؟', optionA: 'A ∩ U', optionB: 'U - A', optionC: 'A ∪ U', optionD: 'A - U', correctOption: 'B', explanation: 'متمم A شامل تمام عناصر U است که در A نیستند' },
+      ],
+    },
+    {
+      title: 'آزمون مشتق - ریاضی دوازدهم',
+      slug: 'quiz-math-12-derivative',
+      description: 'آزمون تستی از مبحث مشتق ویژه آمادگی کنکور',
+      duration: 20 * 60,
+      questions: [
+        { question: 'مشتق تابع f(x) = 3x² + 2x - 1 کدام است؟', optionA: '6x + 2', optionB: '3x + 2', optionC: '6x - 1', optionD: '3x² + 2', correctOption: 'A', explanation: 'f\'(x) = 6x + 2 (قاعده توان)' },
+        { question: 'مشتق تابع f(x) = sin(2x) کدام است؟', optionA: 'cos(2x)', optionB: '2cos(2x)', optionC: '-2cos(2x)', optionD: '2sin(2x)', correctOption: 'B', explanation: 'قاعده زنجیره‌ای: f\'(x) = cos(2x) × 2 = 2cos(2x)' },
+        { question: 'اگر f(x) = eˣ باشد، f\'(0) چقدر است؟', optionA: '0', optionB: '1', optionC: 'e', optionD: '۲', correctOption: 'B', explanation: 'مشتق eˣ = eˣ و e⁰ = 1' },
+        { question: 'مشتق f(x) = ln(x) در x = e کدام است؟', optionA: '1', optionB: '1/e', optionC: 'e', optionD: '0', correctOption: 'B', explanation: 'f\'(x) = 1/x → f\'(e) = 1/e' },
+        { question: 'نقطه بحرانی تابع f(x) = x³ - 3x کدام است؟', optionA: 'x = 0', optionB: 'x = 1', optionC: 'x = ±1', optionD: 'x = 3', correctOption: 'C', explanation: 'f\'(x) = 3x² - 3 = 0 → x² = 1 → x = ±1' },
+        { question: 'مشتق تابع f(x) = x.eˣ کدام است؟', optionA: 'eˣ', optionB: 'x.eˣ', optionC: '(1+x).eˣ', optionD: '(x-1).eˣ', correctOption: 'C', explanation: 'قاعده ضرب: f\'(x) = eˣ + x.eˣ = (1+x).eˣ' },
+      ],
+    },
+    {
+      title: 'آزمون جامع کنکور تجربی',
+      slug: 'quiz-konkur-tajrobi-test',
+      description: 'آزمون جامع ۱۰ سوالی شبیه‌ساز کنکور تجربی - ریاضیات',
+      duration: 25 * 60,
+      questions: [
+        { question: 'حد تابع (x²-1)/(x-1) وقتی x به ۱ میل کند چقدر است؟', optionA: '0', optionB: '1', optionC: '2', optionD: 'وجود ندارد', correctOption: 'C', explanation: '(x²-1)/(x-1) = (x+1)(x-1)/(x-1) = x+1 → 1+1 = 2' },
+        { question: 'انتگرال ∫2x dx کدام است؟', optionA: 'x² + C', optionB: '2x² + C', optionC: 'x + C', optionD: '2 + C', correctOption: 'A', explanation: '∫2x dx = 2.(x²/2) + C = x² + C' },
+        { question: 'معادله خطی که از نقطه (1,2) می‌گذرد و شیب آن 3 است کدام است؟', optionA: 'y = 3x + 1', optionB: 'y = 3x - 1', optionC: 'y = 3x + 2', optionD: 'y = 3x - 2', correctOption: 'B', explanation: 'y - 2 = 3(x - 1) → y = 3x - 1' },
+        { question: 'log₂(8) چقدر است؟', optionA: '2', optionB: '3', optionC: '4', optionD: '8', correctOption: 'B', explanation: '2³ = 8 → log₂(8) = 3' },
+        { question: 'sin(30°) چقدر است؟', optionA: '√2/2', optionB: '√3/2', optionC: '1/2', optionD: '1', correctOption: 'C', explanation: 'sin(30°) = 1/2 از جدول مقادیر مثلثاتی' },
+      ],
+    },
+  ];
+
+  for (const quizData of quizzesData) {
+    const existing = await prisma.quiz.findUnique({ where: { slug: quizData.slug } });
+    if (existing) continue;
+
+    await prisma.quiz.create({
+      data: {
+        title: quizData.title,
+        slug: quizData.slug,
+        description: quizData.description,
+        duration: quizData.duration,
+        isActive: true,
+        questions: {
+          create: quizData.questions.map((q, i) => ({ ...q, sortOrder: i })),
+        },
+      },
+    });
+    console.log(`  ✅ آزمون "${quizData.title}" با ${quizData.questions.length} سوال ایجاد شد`);
+  }
+
+  // ============ Discount Codes ============
+  console.log('🎫 ایجاد کدهای تخفیف نمونه...');
+
+  const discountCodes = [
+    { code: 'WELCOME20', type: 'PERCENT' as const, value: 20, description: 'خوش‌آمدگویی - ۲۰٪ تخفیف', maxUses: 100 },
+    { code: 'KONKUR50', type: 'FIXED' as const, value: 500000, description: 'تخفیف ویژه کنکور - ۵۰۰ هزار تومان', maxUses: 50, minAmount: 1000000 },
+  ];
+
+  for (const dc of discountCodes) {
+    await prisma.discountCode.upsert({
+      where: { code: dc.code },
+      update: {},
+      create: dc,
+    });
+    console.log(`  ✅ کد تخفیف "${dc.code}" ایجاد شد`);
+  }
+
   // ============ Settings ============
   console.log('⚙️ ایجاد تنظیمات پیش‌فرض...');
 
