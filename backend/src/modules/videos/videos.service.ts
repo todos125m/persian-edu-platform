@@ -56,6 +56,49 @@ export class VideosService {
     };
   }
 
+  // Admin: Upload file locally (when S3 is not configured)
+  async uploadLocal(lessonId: string, file: Express.Multer.File, duration: number) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('درس یافت نشد');
+    }
+
+    const existingVideo = await this.prisma.video.findUnique({
+      where: { lessonId },
+    });
+
+    if (existingVideo) {
+      throw new BadRequestException('این درس قبلاً ویدیو دارد. ابتدا ویدیو قبلی را حذف کنید');
+    }
+
+    const storageKey = this.storage.generateStorageKey(file.originalname);
+
+    // Save file to local disk
+    const { size } = await this.storage.saveFileLocally(storageKey, file.buffer);
+
+    // Create video record as READY
+    const video = await this.prisma.video.create({
+      data: {
+        filename: storageKey.split('/').pop()!,
+        originalName: file.originalname,
+        storagePath: storageKey,
+        storageKey,
+        lessonId,
+        status: VideoStatus.READY,
+        duration,
+        size,
+      },
+    });
+
+    // Update course total duration
+    await this.updateCourseDuration(lesson.courseId);
+
+    return video;
+  }
+
   // Admin: Confirm upload complete
   async confirmUpload(videoId: string, duration: number) {
     const video = await this.prisma.video.findUnique({

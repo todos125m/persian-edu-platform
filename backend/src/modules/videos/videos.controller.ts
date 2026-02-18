@@ -8,14 +8,21 @@ import {
   Param,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { VideosService } from './videos.service';
+import { StorageService } from './storage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 
 @Controller('videos')
 export class VideosController {
-  constructor(private videosService: VideosService) {}
+  constructor(
+    private videosService: VideosService,
+    private storageService: StorageService,
+  ) {}
 
   // ============ User Routes ============
 
@@ -40,7 +47,15 @@ export class VideosController {
 
   // ============ Admin Routes ============
 
-  // Get upload URL
+  // Check storage mode
+  @Get('storage-mode')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  getStorageMode() {
+    return { mode: this.storageService.isLocalStorage() ? 'local' : 's3' };
+  }
+
+  // Get upload URL (S3 mode)
   @Post('upload-url')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
@@ -51,7 +66,28 @@ export class VideosController {
     return this.videosService.getUploadUrl(lessonId, filename);
   }
 
-  // Confirm upload complete
+  // Upload file directly (local mode)
+  @Post('upload-local')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @UseInterceptors(
+    FileInterceptor('video', {
+      limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB
+    }),
+  )
+  uploadLocal(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('lessonId') lessonId: string,
+    @Body('duration') duration: string,
+  ) {
+    return this.videosService.uploadLocal(
+      lessonId,
+      file,
+      parseInt(duration) || 0,
+    );
+  }
+
+  // Confirm upload complete (S3 mode)
   @Post(':id/confirm')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')

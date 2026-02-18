@@ -4,10 +4,10 @@ import { useState, useRef } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Trash2, Film } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { adminService } from '@/services/adminService';
+import api from '@/lib/api';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { cn } from '@/lib/utils';
 
 function toPersianNumber(num: number): string {
   const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -64,6 +64,19 @@ export default function VideoUploader({
     setSelectedFile(file);
   };
 
+  const detectDuration = (file: File): Promise<number> => {
+    return new Promise<number>((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        resolve(Math.round(video.duration));
+        URL.revokeObjectURL(video.src);
+      };
+      video.onerror = () => resolve(0);
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) return;
 
@@ -71,54 +84,86 @@ export default function VideoUploader({
       setStatus('uploading');
       setProgress(0);
 
-      // Detect video duration
-      const duration = await new Promise<number>((resolve) => {
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => {
-          resolve(Math.round(video.duration));
-          URL.revokeObjectURL(video.src);
-        };
-        video.onerror = () => resolve(0);
-        video.src = URL.createObjectURL(selectedFile);
-      });
+      const duration = await detectDuration(selectedFile);
 
-      // Get pre-signed upload URL
-      const { videoId, uploadUrl } = await adminService.getUploadUrl(
-        lessonId,
-        selectedFile.name,
-      );
+      // Check storage mode
+      const { data: storageInfo } = await api.get('/videos/storage-mode');
+      const isLocal = storageInfo.mode === 'local';
 
-      // Upload to S3 via XMLHttpRequest for progress tracking
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhrRef.current = xhr;
+      if (isLocal) {
+        // Local upload: send file directly to backend
+        const formData = new FormData();
+        formData.append('video', selectedFile);
+        formData.append('lessonId', lessonId);
+        formData.append('duration', String(duration));
 
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            setProgress(Math.round((e.loaded / e.total) * 100));
-          }
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhrRef.current = xhr;
+
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              setProgress(Math.round((e.loaded / e.total) * 100));
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+          xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+
+          const token = document.cookie
+            .split('; ')
+            .find((c) => c.startsWith('token='))
+            ?.split('=')[1];
+
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+          xhr.open('POST', `${apiUrl}/videos/upload-local`);
+          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          xhr.send(formData);
+        });
+      } else {
+        // S3 upload: get pre-signed URL then upload directly
+        const { videoId, uploadUrl } = await adminService.getUploadUrl(
+          lessonId,
+          selectedFile.name,
+        );
+
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhrRef.current = xhr;
+
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              setProgress(Math.round((e.loaded / e.total) * 100));
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+          xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+
+          xhr.open('PUT', uploadUrl);
+          xhr.setRequestHeader('Content-Type', selectedFile.type);
+          xhr.send(selectedFile);
         });
 
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error(`Upload failed: ${xhr.status}`));
-          }
-        });
-
-        xhr.addEventListener('error', () => reject(new Error('Upload failed')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
-
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', selectedFile.type);
-        xhr.send(selectedFile);
-      });
-
-      // Confirm upload
-      setStatus('confirming');
-      await adminService.confirmUpload(videoId, duration);
+        setStatus('confirming');
+        await adminService.confirmUpload(videoId, duration);
+      }
 
       setStatus('done');
       toast.success('ویدیو با موفقیت آپلود شد');
