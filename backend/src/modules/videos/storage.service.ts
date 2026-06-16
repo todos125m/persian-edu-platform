@@ -40,14 +40,22 @@ export class StorageService {
 
     this.bucketName = this.configService.get('S3_BUCKET_NAME', 'edu-videos');
 
-    // Setup local upload directory
-    this.uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(this.uploadDir)) {
-      fs.mkdirSync(this.uploadDir, { recursive: true });
-    }
-    const videosDir = path.join(this.uploadDir, 'videos');
-    if (!fs.existsSync(videosDir)) {
-      fs.mkdirSync(videosDir, { recursive: true });
+    // Setup local upload directory. Use a writable path (serverless file
+    // systems are read-only except for /tmp), and never let dir creation
+    // crash bootstrap.
+    this.uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+    try {
+      if (!fs.existsSync(this.uploadDir)) {
+        fs.mkdirSync(this.uploadDir, { recursive: true });
+      }
+      const videosDir = path.join(this.uploadDir, 'videos');
+      if (!fs.existsSync(videosDir)) {
+        fs.mkdirSync(videosDir, { recursive: true });
+      }
+    } catch {
+      this.logger.warn(
+        `Could not create upload dir (${this.uploadDir}); local file uploads disabled`,
+      );
     }
   }
 

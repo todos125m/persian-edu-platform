@@ -70,9 +70,13 @@ export class TranscodingService {
     private prisma: PrismaService,
     private storage: StorageService,
   ) {
-    this.tempDir = path.join(process.cwd(), 'temp', 'transcoding');
-    if (!fs.existsSync(this.tempDir)) {
-      fs.mkdirSync(this.tempDir, { recursive: true });
+    this.tempDir = path.join(process.env.UPLOAD_DIR || process.cwd(), 'temp', 'transcoding');
+    try {
+      if (!fs.existsSync(this.tempDir)) {
+        fs.mkdirSync(this.tempDir, { recursive: true });
+      }
+    } catch {
+      // serverless read-only FS — transcoding is not used in that environment
     }
   }
 
