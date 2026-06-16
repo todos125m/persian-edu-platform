@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { VideosService } from './videos.service';
 import { StorageService } from './storage.service';
+import { TranscodingService } from './transcoding.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 
@@ -22,6 +23,7 @@ export class VideosController {
   constructor(
     private videosService: VideosService,
     private storageService: StorageService,
+    private transcodingService: TranscodingService,
   ) {}
 
   // ============ User Routes ============
@@ -45,12 +47,12 @@ export class VideosController {
     return this.videosService.updateProgress(id, req.user.id, position, completed);
   }
 
-  // ============ Admin Routes ============
+  // ============ Admin/Instructor Routes ============
 
   // Check storage mode
   @Get('storage-mode')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'instructor')
   getStorageMode() {
     return { mode: this.storageService.isLocalStorage() ? 'local' : 's3' };
   }
@@ -58,7 +60,7 @@ export class VideosController {
   // Get upload URL (S3 mode)
   @Post('upload-url')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'instructor')
   getUploadUrl(
     @Body('lessonId') lessonId: string,
     @Body('filename') filename: string,
@@ -69,7 +71,7 @@ export class VideosController {
   // Upload file directly (local mode)
   @Post('upload-local')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'instructor')
   @UseInterceptors(
     FileInterceptor('video', {
       limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB
@@ -90,18 +92,35 @@ export class VideosController {
   // Confirm upload complete (S3 mode)
   @Post(':id/confirm')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'instructor')
   confirmUpload(
     @Param('id') id: string,
     @Body('duration') duration: number,
+    @Body('transcode') transcode?: boolean,
   ) {
-    return this.videosService.confirmUpload(id, duration);
+    return this.videosService.confirmUpload(id, duration, transcode);
+  }
+
+  // Start transcoding for an existing video
+  @Post(':id/transcode')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'instructor')
+  startTranscoding(@Param('id') id: string) {
+    return this.videosService.startTranscoding(id);
+  }
+
+  // Get transcoding status
+  @Get(':id/transcode-status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'instructor')
+  getTranscodingStatus(@Param('id') id: string) {
+    return this.transcodingService.getTranscodingStatus(id);
   }
 
   // Delete video
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'instructor')
   remove(@Param('id') id: string) {
     return this.videosService.remove(id);
   }

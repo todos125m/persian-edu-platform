@@ -9,25 +9,25 @@ export function StatsSection() {
   const stats = [
     {
       icon: Users,
-      value: get('stats_students', '۱۵,۰۰۰+'),
+      value: get('stats_students', '۵,۰۰۰+'),
       label: 'دانشجوی فعال',
       description: 'در حال یادگیری',
     },
     {
       icon: BookOpen,
-      value: get('stats_courses', '۲۵۰+'),
+      value: get('stats_courses', '۱۳'),
       label: 'دوره آموزشی',
       description: 'در دسته‌های مختلف',
     },
     {
       icon: Award,
-      value: get('stats_instructors', '۵۰+'),
+      value: get('stats_instructors', '۸'),
       label: 'مدرس حرفه‌ای',
       description: 'با تجربه عملی',
     },
     {
       icon: PlayCircle,
-      value: get('stats_hours', '۱,۵۰۰+'),
+      value: get('stats_hours', '۴۵۰+'),
       label: 'ساعت ویدیو',
       description: 'آموزش عملی',
     },

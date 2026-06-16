@@ -26,10 +26,11 @@ const footerLinks = {
     { href: '/refund', label: 'شرایط بازگشت وجه' },
   ],
   categories: [
-    { href: '/categories/programming', label: 'برنامه‌نویسی' },
-    { href: '/categories/web-development', label: 'طراحی وب' },
-    { href: '/categories/mobile', label: 'توسعه موبایل' },
-    { href: '/categories/data-science', label: 'علم داده' },
+    { href: '/categories/math-10', label: 'ریاضی دهم' },
+    { href: '/categories/math-11', label: 'ریاضی یازدهم' },
+    { href: '/categories/math-12', label: 'ریاضی دوازدهم' },
+    { href: '/categories/math-final', label: 'ریاضی نهایی' },
+    { href: '/categories/math-konkur', label: 'ریاضی کنکور' },
   ],
 };
 
@@ -63,7 +64,7 @@ export function Footer() {
               <span className="text-xl font-bold text-white">{siteName}</span>
             </Link>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              {get('site_description', 'پلتفرم آموزش آنلاین با بهترین دوره‌های ویدیویی در زمینه‌های مختلف برنامه‌نویسی، طراحی و کسب‌وکار')}
+              {get('site_description', 'آموزش آنلاین ریاضیات دبیرستان و کنکور با بهترین اساتید و تدریس مفهومی')}
             </p>
             <div className="flex gap-3">
               {socialInstagram && (

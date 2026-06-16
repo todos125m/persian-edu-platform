@@ -6,12 +6,20 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone, GraduationCap } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import Captcha from '@/components/ui/Captcha';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
 import { toast } from 'react-toastify';
+
+const gradeOptions = [
+  { value: '', label: 'انتخاب پایه تحصیلی (اختیاری)' },
+  { value: 'GRADE_10', label: 'دهم' },
+  { value: 'GRADE_11', label: 'یازدهم' },
+  { value: 'GRADE_12', label: 'دوازدهم' },
+  { value: 'GRADUATED', label: 'فارغ‌التحصیل' },
+];
 
 const registerSchema = z
   .object({
@@ -20,9 +28,8 @@ const registerSchema = z
     email: z.string().email('ایمیل معتبر نیست'),
     phone: z
       .string()
-      .regex(/^09[0-9]{9}$/, 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود')
-      .optional()
-      .or(z.literal('')),
+      .regex(/^09[0-9]{9}$/, 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود'),
+    grade: z.string().optional(),
     password: z.string().min(8, 'رمز عبور باید حداقل ۸ کاراکتر باشد'),
     confirmPassword: z.string(),
   })
@@ -50,13 +57,15 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterForm) => {
     if (!captchaVerified) {
-      toast.error('لطفا کپچا را حل کنید');
+      toast.error('لطفا کد امنیتی را وارد کنید');
       return;
     }
     setIsLoading(true);
     try {
       const { confirmPassword, ...registerData } = data;
-      const response = await authService.register(registerData);
+      const payload: any = { ...registerData };
+      if (!payload.grade) delete payload.grade;
+      const response = await authService.register(payload);
       storeLogin(response.user, response.token, response.refreshToken);
       toast.success('ثبت‌نام با موفقیت انجام شد!');
       router.push('/dashboard');
@@ -102,6 +111,18 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative">
+          <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Input
+            {...register('phone')}
+            type="tel"
+            placeholder="شماره موبایل (مثال: ۰۹۱۲۳۴۵۶۷۸۹)"
+            className="pr-10"
+            error={errors.phone?.message}
+            dir="ltr"
+          />
+        </div>
+
+        <div className="relative">
           <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
             {...register('email')}
@@ -113,16 +134,19 @@ export default function RegisterPage() {
           />
         </div>
 
+        {/* Grade Selection */}
         <div className="relative">
-          <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            {...register('phone')}
-            type="tel"
-            placeholder="شماره موبایل (اختیاری)"
-            className="pr-10"
-            error={errors.phone?.message}
-            dir="ltr"
-          />
+          <GraduationCap className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <select
+            {...register('grade')}
+            className="w-full pr-10 pl-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-colors appearance-none"
+          >
+            {gradeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="relative">
@@ -130,7 +154,7 @@ export default function RegisterPage() {
           <Input
             {...register('password')}
             type={showPassword ? 'text' : 'password'}
-            placeholder="رمز عبور"
+            placeholder="رمز عبور (حداقل ۸ کاراکتر)"
             className="pr-10 pl-10"
             error={errors.password?.message}
             dir="ltr"

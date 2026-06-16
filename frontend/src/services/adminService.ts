@@ -7,10 +7,11 @@ export interface DashboardStats {
   totalCourses: number;
   totalOrders: number;
   totalRevenue: number;
+  totalViews: number;
   recentOrders: AdminOrder[];
   monthlyRevenue: { month: string; amount: number }[];
   userGrowth: { month: string; count: number }[];
-  topCourses: { title: string; students: number; revenue: number }[];
+  topCourses: { title: string; students: number; views: number; revenue: number }[];
 }
 
 export interface AdminUser {
@@ -51,6 +52,7 @@ export interface AdminCourse {
   duration: number;
   lessonsCount: number;
   studentsCount: number;
+  viewCount: number;
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   isFeatured: boolean;
@@ -69,6 +71,8 @@ export interface AdminLesson {
   isFree: boolean;
   isPublished: boolean;
   courseId: string;
+  pdfUrl?: string;
+  pdfName?: string;
   video?: {
     id: string;
     status: string;
@@ -181,13 +185,9 @@ export const adminService = {
     return data;
   },
 
-  // Fetch a single course by ID for admin editing
-  // TODO: Replace with a dedicated GET /courses/admin/:id endpoint when available
   getCourseById: async (id: string): Promise<AdminCourse> => {
-    const { data } = await api.get('/courses/admin/all', { params: { limit: 200 } });
-    const course = data.data.find((c: AdminCourse) => c.id === id);
-    if (!course) throw new Error('دوره یافت نشد');
-    return course;
+    const { data } = await api.get(`/courses/admin/${id}`);
+    return data;
   },
 
   createCourse: async (courseData: Partial<AdminCourse>): Promise<AdminCourse> => {
@@ -241,6 +241,21 @@ export const adminService = {
     const { data } = await api.post(`/lessons/course/${courseId}/reorder`, {
       lessonIds,
     });
+    return data;
+  },
+
+  // Lesson PDF
+  uploadLessonPdf: async (lessonId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post(`/lessons/${lessonId}/pdf`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  deleteLessonPdf: async (lessonId: string) => {
+    const { data } = await api.delete(`/lessons/${lessonId}/pdf`);
     return data;
   },
 
@@ -398,6 +413,33 @@ export const adminService = {
   // Certificates
   getCertificates: async (params: { page?: number; limit?: number }) => {
     const { data } = await api.get('/certificates/admin/all', { params });
+    return data;
+  },
+
+  // Contact Messages
+  getContactMessages: async (params: { page?: number; limit?: number }) => {
+    const { data } = await api.get('/contact/admin/all', { params });
+    return data;
+  },
+
+  markContactRead: async (id: string) => {
+    const { data } = await api.patch(`/contact/admin/${id}/read`);
+    return data;
+  },
+
+  deleteContactMessage: async (id: string) => {
+    const { data } = await api.delete(`/contact/admin/${id}`);
+    return data;
+  },
+
+  // Grant/Revoke course access
+  grantCourseAccess: async (userId: string, courseId: string) => {
+    const { data } = await api.post('/admin/grant-access', { userId, courseId });
+    return data;
+  },
+
+  revokeCourseAccess: async (userId: string, courseId: string) => {
+    const { data } = await api.delete(`/admin/revoke-access/${userId}/${courseId}`);
     return data;
   },
 };

@@ -14,16 +14,27 @@ import {
   X,
   ClipboardCheck,
   Award,
+  Shield,
+  Heart,
+  Bell,
+  GraduationCap,
+  MessageSquare,
+  Calendar,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useHydrated } from '@/hooks/useHydrated';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
   { href: '/dashboard/courses', icon: BookOpen, label: 'دوره‌های من' },
+  { href: '/dashboard/wishlist', icon: Heart, label: 'علاقه‌مندی‌ها' },
+  { href: '/dashboard/notifications', icon: Bell, label: 'اعلان‌ها' },
   { href: '/dashboard/quizzes', icon: ClipboardCheck, label: 'نتایج آزمون' },
   { href: '/dashboard/certificates', icon: Award, label: 'گواهینامه‌ها' },
+  { href: '/dashboard/installments', icon: Calendar, label: 'اقساط من' },
+  { href: '/dashboard/tickets', icon: MessageSquare, label: 'تیکت پشتیبانی' },
   { href: '/dashboard/profile', icon: User, label: 'پروفایل' },
   { href: '/dashboard/settings', icon: Settings, label: 'تنظیمات' },
 ];
@@ -33,14 +44,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const hydrated = useHydrated();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hydrated && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (!hydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
@@ -72,7 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 z-50 w-64 bg-white border-l border-gray-200 transform transition-transform duration-300 lg:translate-x-0',
+          'fixed inset-y-0 right-0 z-50 w-64 bg-white border-l border-gray-200 transform transition-transform duration-300 lg:translate-x-0 flex flex-col',
           sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         )}
       >
@@ -107,7 +119,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Menu */}
-        <nav className="p-4">
+        <nav className="p-4 flex-1 overflow-y-auto">
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.href}>
@@ -129,8 +141,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </ul>
         </nav>
 
-        {/* Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        {/* Admin + Logout */}
+        <div className="p-4 border-t border-gray-200 space-y-1 shrink-0">
+          {(user?.role?.name === 'instructor' || user?.role?.name === 'admin') && (
+            <Link
+              href="/instructor"
+              className="flex items-center gap-3 w-full px-4 py-3 text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+            >
+              <GraduationCap className="w-5 h-5" />
+              <span className="font-medium">پنل مدرس</span>
+            </Link>
+          )}
+          {user?.role?.name === 'admin' && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 w-full px-4 py-3 text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
+            >
+              <Shield className="w-5 h-5" />
+              <span className="font-medium">پنل مدیریت</span>
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors"

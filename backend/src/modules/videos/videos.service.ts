@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from './storage.service';
+import { TranscodingService } from './transcoding.service';
 import { VideoStatus } from '@prisma/client';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class VideosService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
+    private transcoding: TranscodingService,
   ) {}
 
   // Admin: Get upload URL
@@ -100,7 +102,7 @@ export class VideosService {
   }
 
   // Admin: Confirm upload complete
-  async confirmUpload(videoId: string, duration: number) {
+  async confirmUpload(videoId: string, duration: number, transcode = false) {
     const video = await this.prisma.video.findUnique({
       where: { id: videoId },
       include: {
@@ -120,7 +122,7 @@ export class VideosService {
     const updated = await this.prisma.video.update({
       where: { id: videoId },
       data: {
-        status: VideoStatus.READY,
+        status: transcode ? VideoStatus.TRANSCODING : VideoStatus.READY,
         duration,
         size: metadata.ContentLength,
       },
@@ -129,7 +131,31 @@ export class VideosService {
     // Update course total duration
     await this.updateCourseDuration(video.lesson.courseId);
 
+    // Start transcoding in background if requested
+    if (transcode) {
+      this.transcoding.startTranscoding(videoId);
+    }
+
     return updated;
+  }
+
+  // Trigger transcoding for an existing video
+  async startTranscoding(videoId: string) {
+    const video = await this.prisma.video.findUnique({
+      where: { id: videoId },
+    });
+
+    if (!video) {
+      throw new NotFoundException('ویدیو یافت نشد');
+    }
+
+    if (video.status === VideoStatus.TRANSCODING) {
+      throw new BadRequestException('ویدیو در حال تبدیل است');
+    }
+
+    await this.transcoding.startTranscoding(videoId);
+
+    return { message: 'تبدیل کیفیت ویدیو شروع شد', status: 'TRANSCODING' };
   }
 
   // Get stream URL (with ownership check)
@@ -146,6 +172,14 @@ export class VideosService {
               select: { title: true },
             },
           },
+        },
+        qualities: {
+          select: {
+            quality: true,
+            resolution: true,
+            bitrate: true,
+          },
+          orderBy: { bitrate: 'desc' },
         },
       },
     });
@@ -175,8 +209,17 @@ export class VideosService {
       }
     }
 
-    // Generate time-limited signed URL (2 hours)
-    const streamUrl = await this.storage.getStreamUrl(video.storageKey, 7200);
+    // If HLS is available, return HLS manifest URL
+    let streamUrl: string;
+    let isHls = false;
+
+    if (video.hlsPath) {
+      streamUrl = await this.storage.getStreamUrl(video.hlsPath, 7200);
+      isHls = true;
+    } else {
+      // Fallback to direct file URL
+      streamUrl = await this.storage.getStreamUrl(video.storageKey, 7200);
+    }
 
     // Get or create progress
     let progress = await this.prisma.videoProgress.findUnique({
@@ -197,6 +240,8 @@ export class VideosService {
 
     return {
       streamUrl,
+      isHls,
+      qualities: video.qualities,
       duration: video.duration,
       lastPosition: progress.lastPosition,
       isCompleted: progress.isCompleted,
@@ -246,10 +291,16 @@ export class VideosService {
       throw new NotFoundException('ویدیو یافت نشد');
     }
 
-    // Delete from storage
+    // Delete original from storage
     await this.storage.deleteVideo(video.storageKey);
 
-    // Delete from database
+    // Delete HLS files if they exist
+    if (video.hlsPath) {
+      const hlsDir = video.hlsPath.replace('/master.m3u8', '');
+      await this.storage.deleteDirectory(hlsDir);
+    }
+
+    // Delete from database (cascade deletes qualities)
     await this.prisma.video.delete({
       where: { id: videoId },
     });

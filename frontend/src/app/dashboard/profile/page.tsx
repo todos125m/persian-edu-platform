@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { User, Mail, Phone, Camera, Save } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Camera, Save, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { usersService, UpdateProfileDto } from '@/services/usersService';
 import { toast } from 'react-toastify';
@@ -11,11 +11,45 @@ import Input from '@/components/ui/Input';
 export default function DashboardProfilePage() {
   const { user, updateUser } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     phone: '',
   });
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حجم فایل نباید بیشتر از ۵ مگابایت باشد');
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      toast.error('فقط فایل‌های JPG، PNG و WebP مجاز هستند');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const result = await usersService.uploadAvatar(file);
+      updateUser({ avatar: result.avatar });
+      toast.success('آواتار با موفقیت آپلود شد');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'خطا در آپلود آواتار');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +77,12 @@ export default function DashboardProfilePage() {
     }
   };
 
+  const avatarSrc = user?.avatar
+    ? user.avatar.startsWith('http')
+      ? user.avatar
+      : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${user.avatar}`
+    : null;
+
   return (
     <div>
       <div className="mb-8">
@@ -55,11 +95,11 @@ export default function DashboardProfilePage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
             <div className="relative inline-block mb-4">
-              <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mx-auto">
-                {user?.avatar ? (
+              <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mx-auto overflow-hidden">
+                {avatarSrc ? (
                   <img
-                    src={user.avatar}
-                    alt={user.firstName}
+                    src={avatarSrc}
+                    alt={user?.firstName}
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
@@ -68,8 +108,23 @@ export default function DashboardProfilePage() {
                   </span>
                 )}
               </div>
-              <button className="absolute bottom-0 left-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors">
-                <Camera className="w-4 h-4" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <button
+                onClick={handleAvatarClick}
+                disabled={isUploadingAvatar}
+                className="absolute bottom-0 left-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors disabled:opacity-50"
+              >
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
               </button>
             </div>
             <h3 className="font-bold text-gray-900">

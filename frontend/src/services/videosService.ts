@@ -1,7 +1,15 @@
 import { api } from '@/lib/api';
 
+export interface VideoQualityInfo {
+  quality: string;
+  resolution: string;
+  bitrate: number;
+}
+
 export interface StreamResponse {
   streamUrl: string;
+  isHls?: boolean;
+  qualities?: VideoQualityInfo[];
   duration: number;
   lastPosition: number;
   isCompleted: boolean;
@@ -32,5 +40,32 @@ export const videosService = {
       completed,
     });
     return response.data;
+  },
+
+  // Upload management
+  getStorageMode: async (): Promise<{ mode: string }> => {
+    const { data } = await api.get('/videos/storage-mode');
+    return data;
+  },
+
+  getUploadUrl: async (
+    lessonId: string,
+    filename: string,
+  ): Promise<{ videoId: string; uploadUrl: string; storageKey: string }> => {
+    const { data } = await api.post('/videos/upload-url', {
+      lessonId,
+      filename,
+    });
+    return data;
+  },
+
+  confirmUpload: async (videoId: string, duration: number) => {
+    const { data } = await api.post(`/videos/${videoId}/confirm`, { duration });
+    return data;
+  },
+
+  deleteVideo: async (videoId: string) => {
+    const { data } = await api.delete(`/videos/${videoId}`);
+    return data;
   },
 };

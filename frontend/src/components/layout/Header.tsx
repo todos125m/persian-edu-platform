@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -14,9 +14,14 @@ import {
   BookOpen,
   Settings,
   Shield,
+  Bell,
+  Heart,
+  GraduationCap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore, useCartStore, useSettingsStore } from '@/store';
+import { notificationsService } from '@/services/notificationsService';
+import { useHydrated } from '@/hooks/useHydrated';
 
 const navLinks = [
   { href: '/', label: 'صفحه اصلی' },
@@ -30,12 +35,24 @@ const navLinks = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const { user, isAuthenticated, logout } = useAuthStore();
   const itemsCount = useCartStore((state) => state.itemsCount());
   const getSetting = useSettingsStore((s) => s.get);
   const siteName = getSetting('site_name', 'آکادمی');
   const siteLogo = getSetting('site_logo');
+
+  // Use hydrated check to avoid SSR mismatch with persisted auth state
+  const isLoggedIn = hydrated && isAuthenticated;
+  const cartCount = hydrated ? itemsCount : 0;
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      notificationsService.getUnreadCount().then((count) => setUnreadCount(count)).catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
     logout();
@@ -79,9 +96,37 @@ export function Header() {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
             {/* Search */}
-            <button className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+            <Link
+              href="/courses"
+              className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
               <Search className="w-5 h-5" />
-            </button>
+            </Link>
+
+            {/* Wishlist */}
+            {isLoggedIn && (
+              <Link
+                href="/dashboard/wishlist"
+                className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              >
+                <Heart className="w-5 h-5" />
+              </Link>
+            )}
+
+            {/* Notifications */}
+            {isLoggedIn && (
+              <Link
+                href="/dashboard/notifications"
+                className="relative p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -left-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '۹+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* Cart */}
             <Link
@@ -89,15 +134,15 @@ export function Header() {
               className="relative p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
             >
               <ShoppingCart className="w-5 h-5" />
-              {itemsCount > 0 && (
+              {cartCount > 0 && (
                 <span className="absolute -top-1 -left-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
-                  {itemsCount}
+                  {cartCount}
                 </span>
               )}
             </Link>
 
             {/* Auth */}
-            {isAuthenticated ? (
+            {isLoggedIn ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -139,6 +184,16 @@ export function Header() {
                       <Settings className="w-4 h-4" />
                       تنظیمات
                     </Link>
+                    {(user?.role?.name === 'instructor' || user?.role?.name === 'admin') && (
+                      <Link
+                        href="/instructor"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-green-600 hover:bg-green-50"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <GraduationCap className="w-4 h-4" />
+                        پنل مدرس
+                      </Link>
+                    )}
                     {user?.role?.name === 'admin' && (
                       <Link
                         href="/admin"
@@ -203,7 +258,7 @@ export function Header() {
             </nav>
 
             <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-              {isAuthenticated ? (
+              {isLoggedIn ? (
                 <>
                   <Link
                     href="/dashboard"

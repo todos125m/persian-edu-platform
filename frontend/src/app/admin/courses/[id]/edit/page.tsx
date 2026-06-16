@@ -1,14 +1,13 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import CourseForm from '@/components/admin/CourseForm';
 
-export default function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function EditCoursePage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['admin', 'courses', 'all-for-edit'],

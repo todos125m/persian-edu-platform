@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -14,6 +14,7 @@ export class AdminService {
       totalCourses,
       totalOrders,
       revenueResult,
+      totalViewsResult,
       recentOrders,
       topCourses,
     ] = await Promise.all([
@@ -23,6 +24,10 @@ export class AdminService {
       this.prisma.payment.aggregate({
         where: { status: 'SUCCESS' },
         _sum: { amount: true },
+      }),
+      this.prisma.course.aggregate({
+        where: { deletedAt: null },
+        _sum: { viewCount: true },
       }),
       this.prisma.order.findMany({
         take: 5,
@@ -57,7 +62,7 @@ export class AdminService {
     const topCourseIds = topCourses.map((c) => c.courseId);
     const courseTitles = await this.prisma.course.findMany({
       where: { id: { in: topCourseIds } },
-      select: { id: true, title: true, studentsCount: true },
+      select: { id: true, title: true, studentsCount: true, viewCount: true },
     });
 
     const topCoursesData = topCourses.map((tc) => {
@@ -65,6 +70,7 @@ export class AdminService {
       return {
         title: course?.title || '',
         students: course?.studentsCount || 0,
+        views: course?.viewCount || 0,
         revenue: Number(tc._sum.price || 0),
       };
     });
@@ -84,6 +90,7 @@ export class AdminService {
       totalCourses,
       totalOrders,
       totalRevenue: Number(revenueResult._sum.amount || 0),
+      totalViews: Number(totalViewsResult._sum.viewCount || 0),
       recentOrders,
       monthlyRevenue,
       userGrowth,
@@ -137,6 +144,53 @@ export class AdminService {
       }).length;
       return { month: month.label, count };
     });
+  }
+
+  async grantCourseAccess(userId: string, courseId: string) {
+    // Verify user exists
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('کاربر یافت نشد');
+
+    // Verify course exists
+    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new BadRequestException('دوره یافت نشد');
+
+    // Check if already enrolled
+    const existing = await this.prisma.userCourse.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (existing) throw new ConflictException('کاربر قبلاً به این دوره دسترسی دارد');
+
+    // Grant access
+    await this.prisma.userCourse.create({
+      data: { userId, courseId },
+    });
+
+    // Increment students count
+    await this.prisma.course.update({
+      where: { id: courseId },
+      data: { studentsCount: { increment: 1 } },
+    });
+
+    return { message: 'دسترسی با موفقیت اعطا شد' };
+  }
+
+  async revokeCourseAccess(userId: string, courseId: string) {
+    const existing = await this.prisma.userCourse.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!existing) throw new BadRequestException('دسترسی وجود ندارد');
+
+    await this.prisma.userCourse.delete({
+      where: { userId_courseId: { userId, courseId } },
+    });
+
+    await this.prisma.course.update({
+      where: { id: courseId },
+      data: { studentsCount: { decrement: 1 } },
+    });
+
+    return { message: 'دسترسی حذف شد' };
   }
 
   private getLast6Months() {

@@ -6,6 +6,7 @@ import {
   BookOpen,
   ShoppingCart,
   Banknote,
+  Eye,
   LayoutDashboard,
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
@@ -62,7 +63,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
         <StatsCard
           title="کل کاربران"
           value={toPersianNumber(stats.totalUsers)}
@@ -74,6 +75,12 @@ export default function AdminDashboardPage() {
           value={toPersianNumber(stats.totalCourses)}
           icon={BookOpen}
           color="green"
+        />
+        <StatsCard
+          title="کل بازدیدها"
+          value={toPersianNumber(stats.totalViews || 0)}
+          icon={Eye}
+          color="cyan"
         />
         <StatsCard
           title="کل سفارش‌ها"
@@ -139,7 +146,7 @@ export default function AdminDashboardPage() {
                     {formatPrice(course.revenue)}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {toPersianNumber(course.students)} دانشجو
+                    {toPersianNumber(course.students)} دانشجو | {toPersianNumber(course.views || 0)} بازدید
                   </p>
                 </div>
               </div>

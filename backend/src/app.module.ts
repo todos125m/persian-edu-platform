@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 
 // Core Modules
 import { PrismaModule } from './prisma/prisma.module';
@@ -13,11 +14,19 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { InstructorModule } from './modules/instructor/instructor.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { DiscountCodesModule } from './modules/discount-codes/discount-codes.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
+import { SectionsModule } from './modules/sections/sections.module';
+import { TagsModule } from './modules/tags/tags.module';
+import { WishlistsModule } from './modules/wishlists/wishlists.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ContactModule } from './modules/contact/contact.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
+import { InstallmentsModule } from './modules/installments/installments.module';
 
 @Module({
   imports: [
@@ -26,6 +35,9 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+
+    // Schedule (Cron Jobs)
+    ScheduleModule.forRoot(),
 
     // Rate Limiting
     ThrottlerModule.forRoot([
@@ -48,11 +60,19 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
     PaymentsModule,
     CategoriesModule,
     AdminModule,
+    InstructorModule,
     SettingsModule,
     QuizzesModule,
     ReviewsModule,
     DiscountCodesModule,
     CertificatesModule,
+    SectionsModule,
+    TagsModule,
+    WishlistsModule,
+    NotificationsModule,
+    ContactModule,
+    TicketsModule,
+    InstallmentsModule,
   ],
 })
 export class AppModule {}

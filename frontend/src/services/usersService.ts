@@ -26,6 +26,7 @@ export interface UserCourse {
     duration: number;
   };
   progress: number;
+  isLocked: boolean;
   completedAt?: string;
   createdAt: string;
 }
@@ -47,6 +48,16 @@ export const usersService = {
   // Update profile
   updateProfile: async (data: UpdateProfileDto): Promise<UserProfile> => {
     const response = await api.patch('/users/profile', data);
+    return response.data;
+  },
+
+  // Upload avatar
+  uploadAvatar: async (file: File): Promise<{ avatar: string; message: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post('/users/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 };

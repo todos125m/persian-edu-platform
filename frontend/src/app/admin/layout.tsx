@@ -21,9 +21,14 @@ import {
   Star,
   Ticket,
   Award,
+  Tag,
+  Bell,
+  MessageSquare,
+  LifeBuoy,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { useHydrated } from '@/hooks/useHydrated';
 import { cn } from '@/lib/utils';
 
 const adminMenuItems = [
@@ -36,6 +41,10 @@ const adminMenuItems = [
   { href: '/admin/reviews', icon: Star, label: 'نظرات' },
   { href: '/admin/discount-codes', icon: Ticket, label: 'کد تخفیف' },
   { href: '/admin/categories', icon: FolderTree, label: 'دسته‌بندی‌ها' },
+  { href: '/admin/tags', icon: Tag, label: 'برچسب‌ها' },
+  { href: '/admin/tickets', icon: LifeBuoy, label: 'تیکت پشتیبانی' },
+  { href: '/admin/messages', icon: MessageSquare, label: 'پیام‌ها' },
+  { href: '/admin/notifications', icon: Bell, label: 'اعلان‌ها' },
   { href: '/admin/settings', icon: Settings, label: 'تنظیمات' },
 ];
 
@@ -44,8 +53,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const hydrated = useHydrated();
 
   useEffect(() => {
+    if (!hydrated) return;
     if (!isAuthenticated) {
       router.push('/login');
       return;
@@ -53,9 +64,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     if (user?.role?.name !== 'admin') {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, user, router]);
+  }, [hydrated, isAuthenticated, user, router]);
 
-  if (!isAuthenticated || user?.role?.name !== 'admin') {
+  if (!hydrated || !isAuthenticated || user?.role?.name !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
@@ -93,7 +104,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-gray-200 transform transition-transform duration-300 lg:translate-x-0',
+          'fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-gray-200 transform transition-transform duration-300 lg:translate-x-0 flex flex-col',
           sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         )}
       >
@@ -131,7 +142,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Menu */}
-        <nav className="p-4 flex-1">
+        <nav className="p-4 flex-1 overflow-y-auto">
           <ul className="space-y-1">
             {adminMenuItems.map((item) => (
               <li key={item.href}>
@@ -154,7 +165,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200">
+        <div className="border-t border-gray-200 shrink-0">
           <Link
             href="/"
             target="_blank"

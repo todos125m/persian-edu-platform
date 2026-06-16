@@ -128,6 +128,57 @@ export class StorageService {
     await this.s3.deleteObject(params).promise();
   }
 
+  // Upload file directly (for HLS segments)
+  async uploadFile(
+    storageKey: string,
+    buffer: Buffer,
+    contentType: string,
+  ): Promise<void> {
+    if (this.isLocal || !this.s3) {
+      await this.saveFileLocally(storageKey, buffer);
+      return;
+    }
+
+    await this.s3
+      .putObject({
+        Bucket: this.bucketName,
+        Key: storageKey,
+        Body: buffer,
+        ContentType: contentType,
+      })
+      .promise();
+  }
+
+  // Delete directory (for HLS cleanup)
+  async deleteDirectory(prefix: string): Promise<void> {
+    if (this.isLocal || !this.s3) {
+      const dirPath = path.join(this.uploadDir, prefix);
+      if (fs.existsSync(dirPath)) {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+      }
+      return;
+    }
+
+    // List and delete all objects with this prefix
+    const listResult = await this.s3
+      .listObjectsV2({
+        Bucket: this.bucketName,
+        Prefix: prefix,
+      })
+      .promise();
+
+    if (listResult.Contents && listResult.Contents.length > 0) {
+      await this.s3
+        .deleteObjects({
+          Bucket: this.bucketName,
+          Delete: {
+            Objects: listResult.Contents.map((obj) => ({ Key: obj.Key! })),
+          },
+        })
+        .promise();
+    }
+  }
+
   // Get video metadata
   async getVideoMetadata(storageKey: string) {
     if (this.isLocal || !this.s3) {

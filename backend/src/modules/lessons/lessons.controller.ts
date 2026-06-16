@@ -7,8 +7,11 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Request,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { LessonsService } from './lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -32,7 +35,17 @@ export class LessonsController {
     return this.lessonsService.findOne(id, req.user?.id);
   }
 
-  // ============ Admin Routes ============
+  // Get PDF download URL for a lesson (authenticated users with access)
+  @Get(':id/pdf')
+  @UseGuards(JwtAuthGuard)
+  async getPdfUrl(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    return this.lessonsService.getPdfUrl(id, req.user?.id);
+  }
+
+  // ============ Admin/Instructor Routes ============
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -53,6 +66,32 @@ export class LessonsController {
   @Roles('admin')
   remove(@Param('id') id: string) {
     return this.lessonsService.remove(id);
+  }
+
+  // Upload PDF for a lesson
+  @Post(':id/pdf')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'instructor')
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype !== 'application/pdf') {
+        cb(new Error('فقط فایل PDF مجاز است'), false);
+      } else {
+        cb(null, true);
+      }
+    },
+  }))
+  uploadPdf(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.lessonsService.uploadPdf(id, file);
+  }
+
+  // Delete PDF from a lesson
+  @Delete(':id/pdf')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'instructor')
+  deletePdf(@Param('id') id: string) {
+    return this.lessonsService.deletePdf(id);
   }
 
   @Post('course/:courseId/reorder')

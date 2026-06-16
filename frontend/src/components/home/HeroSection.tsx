@@ -1,11 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, Play, Users, BookOpen, Award } from 'lucide-react';
 import { useSettingsStore } from '@/store';
 
 export function HeroSection() {
   const get = useSettingsStore((s) => s.get);
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/courses?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <section className="relative bg-gradient-to-bl from-primary-600 via-primary-700 to-primary-900 overflow-hidden">
@@ -24,24 +35,29 @@ export function HeroSection() {
           {/* Content */}
           <div className="text-white text-center lg:text-right">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-6">
-              {get('hero_title', 'مهارت‌های جدید یاد بگیرید و آینده‌تان را بسازید')}
+              {get('hero_title', 'ریاضی رو ساده و عمیق یاد بگیر')}
             </h1>
             <p className="text-lg md:text-xl text-primary-100 mb-8 leading-relaxed">
-              {get('hero_subtitle', 'با بهترین دوره‌های آموزشی فارسی در زمینه برنامه‌نویسی، طراحی و کسب‌وکار، مسیر حرفه‌ای خود را شروع کنید')}
+              {get('hero_subtitle', 'دوره‌های تخصصی ریاضیات دهم تا دوازدهم، آمادگی نهایی و کنکور با بهترین اساتید')}
             </p>
 
             {/* Search Box */}
-            <div className="relative max-w-xl mx-auto lg:mx-0 mb-8">
+            <form onSubmit={handleSearch} className="relative max-w-xl mx-auto lg:mx-0 mb-8">
               <input
                 type="text"
-                placeholder={get('hero_search_placeholder', 'دنبال چه دوره‌ای می‌گردید؟')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={get('hero_search_placeholder', 'جستجوی دوره ریاضی...')}
                 className="w-full px-6 py-4 pr-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:bg-white/20 focus:border-white/40 transition-all"
               />
               <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" />
-              <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-medium px-6 py-2 rounded-xl transition-colors">
+              <button
+                type="submit"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-medium px-6 py-2 rounded-xl transition-colors"
+              >
                 جستجو
               </button>
-            </div>
+            </form>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -63,26 +79,26 @@ export function HeroSection() {
             <div className="grid grid-cols-2 gap-4">
               <StatCard
                 icon={<Users className="w-6 h-6" />}
-                value={get('stats_students', '۱۵,۰۰۰+')}
+                value={get('stats_students', '۵,۰۰۰+')}
                 label="دانشجوی فعال"
                 color="bg-white"
               />
               <StatCard
                 icon={<BookOpen className="w-6 h-6" />}
-                value={get('stats_courses', '۲۵۰+')}
+                value={get('stats_courses', '۱۳')}
                 label="دوره آموزشی"
                 color="bg-yellow-400"
                 className="mt-8"
               />
               <StatCard
                 icon={<Award className="w-6 h-6" />}
-                value={get('stats_instructors', '۵۰+')}
+                value={get('stats_instructors', '۸')}
                 label="مدرس حرفه‌ای"
                 color="bg-green-400"
               />
               <StatCard
                 icon={<Play className="w-6 h-6" />}
-                value={get('stats_hours', '۱,۵۰۰+')}
+                value={get('stats_hours', '۴۵۰+')}
                 label="ساعت ویدیو"
                 color="bg-white"
                 className="mt-8"
@@ -93,10 +109,10 @@ export function HeroSection() {
 
         {/* Mobile Stats */}
         <div className="lg:hidden mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <MobileStat value={get('stats_students', '۱۵,۰۰۰+')} label="دانشجو" />
-          <MobileStat value={get('stats_courses', '۲۵۰+')} label="دوره" />
-          <MobileStat value={get('stats_instructors', '۵۰+')} label="مدرس" />
-          <MobileStat value={get('stats_hours', '۱,۵۰۰+')} label="ساعت ویدیو" />
+          <MobileStat value={get('stats_students', '۵,۰۰۰+')} label="دانشجو" />
+          <MobileStat value={get('stats_courses', '۱۳')} label="دوره" />
+          <MobileStat value={get('stats_instructors', '۸')} label="مدرس" />
+          <MobileStat value={get('stats_hours', '۴۵۰+')} label="ساعت ویدیو" />
         </div>
       </div>
     </section>

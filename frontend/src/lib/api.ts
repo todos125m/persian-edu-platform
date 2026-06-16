@@ -76,7 +76,7 @@ api.interceptors.response.use(
           refreshToken,
         });
 
-        const newToken = data.accessToken;
+        const newToken = data.token;
         const newRefreshToken = data.refreshToken;
 
         authStore.setToken(newToken);

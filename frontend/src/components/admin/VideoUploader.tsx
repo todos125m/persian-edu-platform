@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Trash2, Film } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { adminService } from '@/services/adminService';
+import { videosService } from '@/services/videosService';
 import api from '@/lib/api';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -130,7 +130,7 @@ export default function VideoUploader({
         });
       } else {
         // S3 upload: get pre-signed URL then upload directly
-        const { videoId, uploadUrl } = await adminService.getUploadUrl(
+        const { videoId, uploadUrl } = await videosService.getUploadUrl(
           lessonId,
           selectedFile.name,
         );
@@ -162,7 +162,7 @@ export default function VideoUploader({
         });
 
         setStatus('confirming');
-        await adminService.confirmUpload(videoId, duration);
+        await videosService.confirmUpload(videoId, duration);
       }
 
       setStatus('done');
@@ -190,7 +190,7 @@ export default function VideoUploader({
     if (!existingVideo) return;
     setDeleting(true);
     try {
-      await adminService.deleteVideo(existingVideo.id);
+      await videosService.deleteVideo(existingVideo.id);
       toast.success('ویدیو با موفقیت حذف شد');
       setShowDeleteConfirm(false);
       onUploadComplete();

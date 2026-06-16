@@ -24,15 +24,15 @@ export function CTASection() {
           <div className="relative px-6 py-12 md:px-12 md:py-16 lg:py-20 text-center">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4" />
-              {get('cta_badge', 'شروع کنید - رایگان')}
+              {get('cta_badge', 'ثبت‌نام رایگان')}
             </div>
 
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 max-w-2xl mx-auto">
-              {get('cta_title', 'همین امروز یادگیری را شروع کنید')}
+              {get('cta_title', 'همین امروز آمادگی کنکور رو شروع کن')}
             </h2>
 
             <p className="text-primary-100 text-lg mb-8 max-w-xl mx-auto">
-              {get('cta_subtitle', 'با ثبت‌نام رایگان، به بخشی از دوره‌ها دسترسی پیدا کنید و مسیر حرفه‌ای خود را شروع کنید')}
+              {get('cta_subtitle', 'با ثبت‌نام رایگان، به جلسات نمونه دسترسی پیدا کنید و کیفیت تدریس را ببینید')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

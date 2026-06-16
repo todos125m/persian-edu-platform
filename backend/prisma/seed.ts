@@ -46,15 +46,35 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'admin@example.com' },
-    update: {},
+    update: { phone: '09120000001' },
     create: {
       email: 'admin@example.com',
       password: hashedPassword,
       firstName: 'مدیر',
       lastName: 'سیستم',
+      phone: '09120000001',
       isActive: true,
       isVerified: true,
       roleId: adminRole.id,
+    },
+  });
+
+  // ============ Instructor User ============
+  console.log('👤 ایجاد کاربر مدرس...');
+
+  const instructorPassword = await bcrypt.hash('Instructor@123456', 12);
+  await prisma.user.upsert({
+    where: { email: 'instructor@example.com' },
+    update: { phone: '09120000002' },
+    create: {
+      email: 'instructor@example.com',
+      password: instructorPassword,
+      firstName: 'استاد',
+      lastName: 'نمونه',
+      phone: '09120000002',
+      isActive: true,
+      isVerified: true,
+      roleId: instructorRole.id,
     },
   });
 

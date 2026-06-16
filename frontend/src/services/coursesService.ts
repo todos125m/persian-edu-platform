@@ -14,6 +14,7 @@ export interface Course {
   duration: number;
   lessonsCount: number;
   studentsCount: number;
+  viewCount: number;
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   isFeatured: boolean;
@@ -32,6 +33,8 @@ export interface Lesson {
   description?: string;
   sortOrder: number;
   isFree: boolean;
+  pdfUrl?: string;
+  pdfName?: string;
   video?: {
     duration: number;
   };
@@ -68,5 +71,10 @@ export const coursesService = {
   getLessons: async (courseId: string): Promise<Lesson[]> => {
     const response = await api.get(`/lessons/course/${courseId}`);
     return response.data;
+  },
+
+  // Track course view
+  trackView: async (courseId: string): Promise<void> => {
+    await api.post(`/courses/${courseId}/view`).catch(() => {});
   },
 };

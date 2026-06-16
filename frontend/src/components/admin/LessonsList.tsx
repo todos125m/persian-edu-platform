@@ -11,6 +11,8 @@ import {
   Video,
   Eye,
   EyeOff,
+  FileText,
+  X,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { adminService, AdminLesson } from '@/services/adminService';
@@ -33,6 +35,41 @@ export default function LessonsList({ courseId, lessons }: LessonsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [uploadingPdfId, setUploadingPdfId] = useState<string | null>(null);
+
+  const pdfUploadMutation = useMutation({
+    mutationFn: ({ lessonId, file }: { lessonId: string; file: File }) =>
+      adminService.uploadLessonPdf(lessonId, file),
+    onSuccess: () => {
+      toast.success('جزوه با موفقیت آپلود شد');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'lessons', courseId] });
+      setUploadingPdfId(null);
+    },
+    onError: () => toast.error('خطا در آپلود جزوه'),
+  });
+
+  const pdfDeleteMutation = useMutation({
+    mutationFn: (lessonId: string) => adminService.deleteLessonPdf(lessonId),
+    onSuccess: () => {
+      toast.success('جزوه حذف شد');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'lessons', courseId] });
+    },
+    onError: () => toast.error('خطا در حذف جزوه'),
+  });
+
+  const handlePdfUpload = (lessonId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('فقط فایل PDF مجاز است');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('حجم فایل نباید بیشتر از ۵۰ مگابایت باشد');
+      return;
+    }
+    pdfUploadMutation.mutate({ lessonId, file });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminService.deleteLesson(id),
@@ -120,10 +157,40 @@ export default function LessonsList({ courseId, lessons }: LessonsListProps) {
                       {lesson.video.status === 'READY' ? 'ویدیو آماده' : 'در حال پردازش'}
                     </Badge>
                   )}
+                  {lesson.pdfUrl && (
+                    <Badge variant="info">
+                      <FileText className="w-3 h-3 ml-1 inline" />
+                      جزوه
+                    </Badge>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
+                {/* PDF Upload/Delete */}
+                {lesson.pdfUrl ? (
+                  <button
+                    onClick={() => pdfDeleteMutation.mutate(lesson.id)}
+                    className="p-2 text-green-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="حذف جزوه"
+                    disabled={pdfDeleteMutation.isPending}
+                  >
+                    <FileText className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <label
+                    className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors cursor-pointer"
+                    title="آپلود جزوه PDF"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => handlePdfUpload(lesson.id, e)}
+                    />
+                  </label>
+                )}
                 <button
                   onClick={() => setUploadingLessonId(lesson.id)}
                   className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"

@@ -139,7 +139,7 @@ export default function CourseForm({ initialData, mode }: CourseFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="عنوان دوره"
-              placeholder="مثال: آموزش جامع React"
+              placeholder="مثال: ریاضی دوازدهم - مشتق"
               error={errors.title?.message}
               {...register('title')}
             />

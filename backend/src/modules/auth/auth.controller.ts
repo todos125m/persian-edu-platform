@@ -53,4 +53,38 @@ export class AuthController {
       body.newPassword,
     );
   }
+
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  async forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Post('forgot-password/phone')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  async forgotPasswordByPhone(@Body('phone') phone: string) {
+    return this.authService.forgotPasswordByPhone(phone);
+  }
+
+  @Post('verify-otp')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async verifyOtp(@Body() body: { phone: string; code: string; type: string }) {
+    return this.authService.verifyOtp(body.phone, body.code, body.type);
+  }
+
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async resetPassword(
+    @Body() body: { token: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(body.token, body.newPassword);
+  }
+
+  @Post('reset-password/phone')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async resetPasswordByPhone(
+    @Body() body: { phone: string; code: string; newPassword: string },
+  ) {
+    return this.authService.resetPasswordByPhone(body.phone, body.code, body.newPassword);
+  }
 }

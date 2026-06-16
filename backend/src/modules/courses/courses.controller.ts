@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CoursesService } from './courses.service';
@@ -14,6 +15,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { Request } from 'express';
 
 @Controller('courses')
 export class CoursesController {
@@ -48,6 +50,13 @@ export class CoursesController {
     return this.coursesService.findBySlug(slug);
   }
 
+  @Post(':id/view')
+  trackView(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user?.id;
+    const ip = req.ip || req.headers['x-forwarded-for']?.toString();
+    return this.coursesService.trackView(id, userId, ip);
+  }
+
   // ============ Admin Routes ============
 
   @Get('admin/all')
@@ -61,6 +70,13 @@ export class CoursesController {
     @Query('category') category?: string,
   ) {
     return this.coursesService.findAll(+page, +limit, search, status, category);
+  }
+
+  @Get('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  findOneAdmin(@Param('id') id: string) {
+    return this.coursesService.findOneAdmin(id);
   }
 
   @Post()

@@ -10,16 +10,19 @@ export interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
+  phone: string;
+  grade?: string;
 }
 
 export interface AuthResponse {
   user: {
     id: string;
     email: string;
+    phone: string;
     firstName: string;
     lastName: string;
     avatar?: string;
+    grade?: string;
     role: {
       name: string;
       nameFA: string;
@@ -47,8 +50,31 @@ export const authService = {
   },
 
   logout: async () => {
-    // If we have refresh token logic, call logout endpoint
-    // For now, just clear local storage
     return Promise.resolve();
+  },
+
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post('/auth/reset-password', { token, newPassword });
+    return response.data;
+  },
+
+  forgotPasswordByPhone: async (phone: string) => {
+    const response = await api.post('/auth/forgot-password/phone', { phone });
+    return response.data;
+  },
+
+  verifyOtp: async (phone: string, code: string, type: string = 'FORGOT_PASSWORD') => {
+    const response = await api.post('/auth/verify-otp', { phone, code, type });
+    return response.data;
+  },
+
+  resetPasswordByPhone: async (phone: string, code: string, newPassword: string) => {
+    const response = await api.post('/auth/reset-password/phone', { phone, code, newPassword });
+    return response.data;
   },
 };

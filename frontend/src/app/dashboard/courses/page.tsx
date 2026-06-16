@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Clock, Trophy, Search, Filter } from 'lucide-react';
+import { BookOpen, Clock, Trophy, Search, Filter, AlertTriangle } from 'lucide-react';
 import { usersService, UserCourse } from '@/services/usersService';
 import { formatDuration } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -130,7 +130,7 @@ export default function DashboardCoursesPage() {
           {filteredCourses.map((item) => (
             <Link
               key={item.id}
-              href={`/courses/${item.course.slug}`}
+              href={`/dashboard/courses/${item.course.id}`}
               className="block bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex gap-4">
@@ -149,9 +149,17 @@ export default function DashboardCoursesPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 mb-1 truncate">
-                    {item.course.title}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-gray-900 truncate">
+                      {item.course.title}
+                    </h3>
+                    {item.isLocked && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full shrink-0">
+                        <AlertTriangle className="w-3 h-3" />
+                        قفل شده
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-4 h-4" />

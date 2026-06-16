@@ -15,9 +15,12 @@ import {
   Ban,
   CheckCircle,
   Save,
+  Plus,
+  X,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { adminService, AdminUser, Role } from '@/services/adminService';
+import api from '@/lib/api';
 import { toJalali } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -37,6 +40,8 @@ export default function AdminUserDetailPage() {
 
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [showGrantSection, setShowGrantSection] = useState(false);
 
   // Fetch user detail
   const { data: user, isLoading } = useQuery({
@@ -50,6 +55,47 @@ export default function AdminUserDetailPage() {
     queryKey: ['admin', 'roles'],
     queryFn: adminService.getRoles,
   });
+
+  // Fetch all courses for grant access dropdown
+  const { data: allCourses } = useQuery({
+    queryKey: ['admin', 'courses', 'all'],
+    queryFn: async () => {
+      const { data } = await api.get('/courses/admin/all?limit=200');
+      return data;
+    },
+  });
+
+  // Grant course access mutation
+  const grantAccessMutation = useMutation({
+    mutationFn: (courseId: string) => adminService.grantCourseAccess(id, courseId),
+    onSuccess: () => {
+      toast.success('دسترسی دوره با موفقیت اعطا شد');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] });
+      setSelectedCourseId('');
+      setShowGrantSection(false);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'خطا در اعطای دسترسی');
+    },
+  });
+
+  // Revoke course access mutation
+  const revokeAccessMutation = useMutation({
+    mutationFn: (courseId: string) => adminService.revokeCourseAccess(id, courseId),
+    onSuccess: () => {
+      toast.success('دسترسی دوره با موفقیت لغو شد');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'خطا در لغو دسترسی');
+    },
+  });
+
+  // Filter out already enrolled courses from the dropdown
+  const enrolledCourseIds = user?.courses?.map((e: any) => e.course.id) || [];
+  const availableCourses = (allCourses?.data || []).filter(
+    (c: any) => !enrolledCourseIds.includes(c.id)
+  );
 
   // Set selected role once user and roles data are available
   const currentRoleId =
@@ -240,16 +286,61 @@ export default function AdminUserDetailPage() {
 
           {/* Enrolled Courses */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-primary-600" />
-              <h3 className="text-lg font-bold text-gray-900">دوره‌های ثبت‌نام شده</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary-600" />
+                <h3 className="text-lg font-bold text-gray-900">دوره‌های ثبت‌نام شده</h3>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowGrantSection(!showGrantSection)}
+              >
+                {showGrantSection ? (
+                  <><X className="w-4 h-4 ml-1" /> انصراف</>
+                ) : (
+                  <><Plus className="w-4 h-4 ml-1" /> اعطای دسترسی</>
+                )}
+              </Button>
             </div>
+
+            {/* Grant Access Form */}
+            {showGrantSection && (
+              <div className="mb-4 p-4 bg-primary-50 rounded-lg border border-primary-200 space-y-3">
+                <p className="text-sm font-medium text-primary-800">
+                  اعطای دسترسی رایگان به دوره (بدون پرداخت)
+                </p>
+                <Select
+                  options={availableCourses.map((c: any) => ({
+                    value: c.id,
+                    label: c.title,
+                  }))}
+                  value={selectedCourseId}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  placeholder="انتخاب دوره"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (selectedCourseId) {
+                      grantAccessMutation.mutate(selectedCourseId);
+                    }
+                  }}
+                  isLoading={grantAccessMutation.isPending}
+                  disabled={!selectedCourseId}
+                >
+                  <Plus className="w-4 h-4 ml-1" />
+                  اعطای دسترسی
+                </Button>
+              </div>
+            )}
+
             {user.courses && user.courses.length > 0 ? (
               <div className="space-y-3">
-                {user.courses.map((enrollment) => (
+                {user.courses.map((enrollment: any) => (
                   <div
                     key={enrollment.course.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group"
                   >
                     <div className="flex items-center gap-3">
                       {enrollment.course.thumbnail ? (
@@ -272,19 +363,28 @@ export default function AdminUserDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">پیشرفت:</span>
-                        <span className="text-sm font-medium text-primary-600">
-                          {toPersianNumber(enrollment.progress)}%
-                        </span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">پیشرفت:</span>
+                          <span className="text-sm font-medium text-primary-600">
+                            {toPersianNumber(enrollment.progress)}%
+                          </span>
+                        </div>
+                        <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
+                          <div
+                            className="h-full bg-primary-600 rounded-full transition-all"
+                            style={{ width: `${enrollment.progress}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-24 h-2 bg-gray-200 rounded-full mt-1">
-                        <div
-                          className="h-full bg-primary-600 rounded-full transition-all"
-                          style={{ width: `${enrollment.progress}%` }}
-                        />
-                      </div>
+                      <button
+                        onClick={() => revokeAccessMutation.mutate(enrollment.course.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                        title="لغو دسترسی"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))}

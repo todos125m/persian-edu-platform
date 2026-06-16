@@ -60,6 +60,7 @@ export class CoursesService {
           duration: true,
           lessonsCount: true,
           studentsCount: true,
+          viewCount: true,
           level: true,
           isFeatured: true,
           category: {
@@ -84,7 +85,7 @@ export class CoursesService {
 
   // Public: Get featured courses
   async findFeatured() {
-    return this.prisma.course.findMany({
+    const featured = await this.prisma.course.findMany({
       where: {
         status: CourseStatus.PUBLISHED,
         isFeatured: true,
@@ -103,9 +104,42 @@ export class CoursesService {
         lessonsCount: true,
         studentsCount: true,
         level: true,
+        category: {
+          select: { name: true, nameFA: true, slug: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // If no featured courses, return latest published courses
+    if (featured.length === 0) {
+      return this.prisma.course.findMany({
+        where: {
+          status: CourseStatus.PUBLISHED,
+          deletedAt: null,
+        },
+        take: 8,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          shortDesc: true,
+          thumbnail: true,
+          price: true,
+          discountPrice: true,
+          duration: true,
+          lessonsCount: true,
+          studentsCount: true,
+          level: true,
+          category: {
+            select: { name: true, nameFA: true, slug: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    return featured;
   }
 
   // Public: Get single course by slug
@@ -141,6 +175,37 @@ export class CoursesService {
     }
 
     return course;
+  }
+
+  // Track course view
+  async trackView(courseId: string, userId?: string, ip?: string) {
+    // Dedup: don't count same user/ip within 30 minutes
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const where: any = {
+      courseId,
+      viewedAt: { gte: thirtyMinAgo },
+    };
+    if (userId) {
+      where.userId = userId;
+    } else if (ip) {
+      where.ip = ip;
+    } else {
+      // No dedup possible, just record
+      where.id = 'none'; // won't match anything
+    }
+
+    const recent = await this.prisma.courseView.findFirst({ where });
+    if (recent) return; // Already counted recently
+
+    await Promise.all([
+      this.prisma.courseView.create({
+        data: { courseId, userId: userId || null, ip: ip || null },
+      }),
+      this.prisma.course.update({
+        where: { id: courseId },
+        data: { viewCount: { increment: 1 } },
+      }),
+    ]);
   }
 
   // Admin: Get all courses
@@ -184,6 +249,7 @@ export class CoursesService {
           status: true,
           lessonsCount: true,
           studentsCount: true,
+          viewCount: true,
           isFeatured: true,
           category: {
             select: { nameFA: true },
@@ -204,6 +270,37 @@ export class CoursesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  // Admin: Get single course by ID
+  async findOneAdmin(id: string) {
+    const course = await this.prisma.course.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        category: {
+          select: { id: true, nameFA: true, slug: true },
+        },
+        lessons: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            sortOrder: true,
+            isFree: true,
+            isPublished: true,
+            video: {
+              select: { id: true, duration: true, status: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      throw new NotFoundException('دوره یافت نشد');
+    }
+
+    return course;
   }
 
   // Admin: Create course

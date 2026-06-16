@@ -8,17 +8,17 @@ import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
-    default: 'آکادمی آموزش | یادگیری آنلاین',
-    template: '%s | آکادمی آموزش',
+    default: 'آکادمی ریاضی | آموزش ریاضیات کنکور',
+    template: '%s | آکادمی ریاضی',
   },
-  description: 'پلتفرم آموزش آنلاین فارسی - دوره‌های ویدیویی حرفه‌ای برنامه‌نویسی، طراحی و کسب‌وکار',
-  keywords: ['آموزش آنلاین', 'دوره برنامه‌نویسی', 'آموزش فارسی', 'یادگیری'],
-  authors: [{ name: 'آکادمی آموزش' }],
-  creator: 'آکادمی آموزش',
+  description: 'آموزش آنلاین ریاضیات دبیرستان و کنکور - دوره‌های ویدیویی مفهومی ریاضی دهم، یازدهم، دوازدهم و آمادگی کنکور',
+  keywords: ['آموزش ریاضی', 'کنکور ریاضی', 'ریاضیات دبیرستان', 'آمادگی کنکور', 'ریاضی نهایی', 'آموزش آنلاین'],
+  authors: [{ name: 'آکادمی ریاضی' }],
+  creator: 'آکادمی ریاضی',
   openGraph: {
     type: 'website',
     locale: 'fa_IR',
-    siteName: 'آکادمی آموزش',
+    siteName: 'آکادمی ریاضی',
   },
 };
 
@@ -28,14 +28,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="theme-color" content="#2563eb" />
       </head>
-      <body className="min-h-screen flex flex-col">
+      <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <Providers>
           <LayoutWrapper>{children}</LayoutWrapper>
           <ToastContainer

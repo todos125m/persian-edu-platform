@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Pencil } from 'lucide-react';
@@ -9,6 +8,7 @@ import { formatPrice } from '@/lib/utils';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import LessonsList from '@/components/admin/LessonsList';
+import SectionsManager from '@/components/admin/SectionsManager';
 
 function toPersianNumber(num: number): string {
   const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -27,8 +27,8 @@ const levelLabels: Record<string, string> = {
   ADVANCED: 'پیشرفته',
 };
 
-export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function CourseDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   const { data: coursesData, isLoading: coursesLoading } = useQuery({
     queryKey: ['admin', 'courses', 'all-for-detail'],
@@ -107,6 +107,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             <p className="font-medium text-gray-900">{toPersianNumber(course.studentsCount)}</p>
           </div>
         </div>
+      </div>
+
+      {/* Sections Management */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <SectionsManager courseId={id} />
       </div>
 
       {/* Lessons Management */}

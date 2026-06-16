@@ -89,7 +89,7 @@ export default function LessonFormModal({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           label="عنوان درس"
-          placeholder="مثال: مقدمه‌ای بر React"
+          placeholder="مثال: حد و پیوستگی - جلسه اول"
           error={errors.title?.message}
           {...register('title')}
         />

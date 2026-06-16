@@ -16,6 +16,8 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Captcha from '@/components/ui/Captcha';
 import { toast } from 'react-toastify';
+import { api } from '@/lib/api';
+import { useSettingsStore } from '@/store';
 
 const contactInfo = [
   {
@@ -45,6 +47,11 @@ const contactInfo = [
 ];
 
 export default function ContactPage() {
+  const get = useSettingsStore((s) => s.get);
+  const socialInstagram = get('social_instagram');
+  const socialTelegram = get('social_telegram');
+  const socialLinkedin = get('social_linkedin');
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -67,11 +74,15 @@ export default function ContactPage() {
     }
 
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1000));
-    toast.success('پیام شما با موفقیت ارسال شد. به زودی با شما تماس خواهیم گرفت.');
-    setFormData({ name: '', email: '', subject: '', message: '' });
-    setIsSubmitting(false);
+    try {
+      await api.post('/contact', formData);
+      toast.success('پیام شما با موفقیت ارسال شد. به زودی با شما تماس خواهیم گرفت.');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch {
+      toast.error('خطا در ارسال پیام. لطفا دوباره تلاش کنید.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -179,24 +190,39 @@ export default function ContactPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <p className="text-sm text-gray-500 mb-3">شبکه‌های اجتماعی</p>
                 <div className="flex gap-3">
-                  <a
-                    href="#"
-                    className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                  >
-                    <Instagram className="w-5 h-5" />
-                  </a>
-                  <a
-                    href="#"
-                    className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                  >
-                    <Send className="w-5 h-5" />
-                  </a>
-                  <a
-                    href="#"
-                    className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                  >
-                    <Linkedin className="w-5 h-5" />
-                  </a>
+                  {socialInstagram && (
+                    <a
+                      href={socialInstagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <Instagram className="w-5 h-5" />
+                    </a>
+                  )}
+                  {socialTelegram && (
+                    <a
+                      href={socialTelegram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <Send className="w-5 h-5" />
+                    </a>
+                  )}
+                  {socialLinkedin && (
+                    <a
+                      href={socialLinkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <Linkedin className="w-5 h-5" />
+                    </a>
+                  )}
+                  {!socialInstagram && !socialTelegram && !socialLinkedin && (
+                    <p className="text-sm text-gray-400">لینکی تنظیم نشده است</p>
+                  )}
                 </div>
               </div>
             </div>

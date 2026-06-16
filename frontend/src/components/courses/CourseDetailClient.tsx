@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -17,6 +17,8 @@ import {
 import { Button } from '@/components/ui';
 import CourseReviews from './CourseReviews';
 import { ordersService } from '@/services/ordersService';
+import { wishlistsService } from '@/services/wishlistsService';
+import { coursesService } from '@/services/coursesService';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice, formatDuration } from '@/lib/utils';
 import { toast } from 'react-toastify';
@@ -36,6 +38,38 @@ export default function CourseDetailClient({ course }: CourseDetailClientProps) 
   const { isAuthenticated } = useAuthStore();
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // Track page view
+  useEffect(() => {
+    coursesService.trackView(course.id);
+  }, [course.id]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      wishlistsService.getAll().then((items) => {
+        setIsWishlisted(items.some((item) => item.courseId === course.id));
+      }).catch(() => {});
+    }
+  }, [isAuthenticated, course.id]);
+
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=/courses/${course.slug}`);
+      return;
+    }
+    setWishlistLoading(true);
+    try {
+      const { wishlisted } = await wishlistsService.toggle(course.id);
+      setIsWishlisted(wishlisted);
+      toast.success(wishlisted ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد');
+    } catch {
+      toast.error('خطا در بروزرسانی علاقه‌مندی‌ها');
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   const handleEnroll = async () => {
     if (!isAuthenticated) {
@@ -231,11 +265,24 @@ export default function CourseDetailClient({ course }: CourseDetailClientProps) 
                 </Button>
 
                 <div className="flex gap-2 mb-6">
-                  <Button variant="outline" fullWidth>
-                    <Heart className="w-5 h-5 ml-2" />
-                    علاقه‌مندی
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    onClick={handleWishlistToggle}
+                    isLoading={wishlistLoading}
+                    className={isWishlisted ? 'border-red-500 text-red-500 hover:bg-red-50' : ''}
+                  >
+                    <Heart className={`w-5 h-5 ml-2 ${isWishlisted ? 'fill-red-500' : ''}`} />
+                    {isWishlisted ? 'در علاقه‌مندی‌ها' : 'علاقه‌مندی'}
                   </Button>
-                  <Button variant="outline" fullWidth>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('لینک کپی شد');
+                    }}
+                  >
                     <Share2 className="w-5 h-5 ml-2" />
                     اشتراک
                   </Button>

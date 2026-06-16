@@ -4,6 +4,10 @@ export { categoriesService } from './categoriesService';
 export { ordersService, paymentsService } from './ordersService';
 export { videosService } from './videosService';
 export { usersService } from './usersService';
+export { wishlistsService } from './wishlistsService';
+export { notificationsService } from './notificationsService';
+export { tagsService } from './tagsService';
+export { sectionsService } from './sectionsService';
 
 export type { LoginDto, RegisterDto, AuthResponse } from './authService';
 export type { Course, Lesson, CoursesParams } from './coursesService';
@@ -11,3 +15,7 @@ export type { Category } from './categoriesService';
 export type { Order, OrderItem } from './ordersService';
 export type { StreamResponse, VideoProgress } from './videosService';
 export type { UserProfile, UserCourse, UpdateProfileDto } from './usersService';
+export type { WishlistItem } from './wishlistsService';
+export type { Notification } from './notificationsService';
+export type { Tag } from './tagsService';
+export type { Section } from './sectionsService';

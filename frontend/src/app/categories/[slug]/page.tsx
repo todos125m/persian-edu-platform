@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FolderOpen, Search, ArrowRight } from 'lucide-react';
 import { CourseCard, Button } from '@/components/ui';
@@ -15,8 +15,8 @@ const levels = [
   { value: 'ADVANCED', label: 'پیشرفته' },
 ];
 
-export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
+export default function CategoryPage({ params }: { params: { slug: string } }) {
+  const { slug } = params;
   const [category, setCategory] = useState<any>(null);
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

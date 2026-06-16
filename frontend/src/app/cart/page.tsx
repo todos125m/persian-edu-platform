@@ -13,10 +13,13 @@ import {
   Ticket,
   Check,
   X,
+  CreditCard,
+  Calendar,
 } from 'lucide-react';
 import { useCartStore } from '@/store';
 import { useAuthStore } from '@/store/authStore';
 import { ordersService } from '@/services/ordersService';
+import { installmentsService, InstallmentPreview } from '@/services/installmentsService';
 import { formatPrice, toPersianNumber } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import Button from '@/components/ui/Button';
@@ -27,6 +30,11 @@ export default function CartPage() {
     useCartStore();
   const { isAuthenticated } = useAuthStore();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Installment state
+  const [paymentMode, setPaymentMode] = useState<'full' | 'installment'>('full');
+  const [installmentMonths, setInstallmentMonths] = useState(3);
+  const [installmentPreview, setInstallmentPreview] = useState<InstallmentPreview | null>(null);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -73,13 +81,38 @@ export default function CartPage() {
     try {
       const courseIds = items.map((item) => item.id);
       const order = await ordersService.create(courseIds, appliedCoupon?.code);
-      const payment = await ordersService.initiatePayment(order.id);
-      clearCart();
-      window.location.href = payment.paymentUrl;
+
+      if (paymentMode === 'installment') {
+        // Create installment plan, then pay down payment
+        await installmentsService.create(order.id, installmentMonths);
+        const payment = await ordersService.initiatePayment(order.id);
+        clearCart();
+        window.location.href = payment.paymentUrl;
+      } else {
+        // Full payment
+        const payment = await ordersService.initiatePayment(order.id);
+        clearCart();
+        window.location.href = payment.paymentUrl;
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'خطا در ثبت سفارش');
     } finally {
       setIsCheckingOut(false);
+    }
+  };
+
+  const handleInstallmentPreview = async (months: number) => {
+    setInstallmentMonths(months);
+    const amount = appliedCoupon ? appliedCoupon.finalAmount : finalPrice();
+    if (amount < 500000) {
+      setInstallmentPreview(null);
+      return;
+    }
+    try {
+      const preview = await installmentsService.getPreview(amount, months);
+      setInstallmentPreview(preview);
+    } catch {
+      setInstallmentPreview(null);
     }
   };
 
@@ -266,6 +299,80 @@ export default function CartPage() {
                 </div>
               </div>
 
+              {/* Payment Mode Toggle */}
+              {payableAmount >= 500000 && (
+                <div className="mt-5 space-y-3">
+                  <p className="text-sm font-medium text-gray-700">روش پرداخت:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        setPaymentMode('full');
+                        setInstallmentPreview(null);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                        paymentMode === 'full'
+                          ? 'border-primary-600 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      نقدی
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPaymentMode('installment');
+                        handleInstallmentPreview(installmentMonths);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                        paymentMode === 'installment'
+                          ? 'border-primary-600 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      اقساطی
+                    </button>
+                  </div>
+
+                  {paymentMode === 'installment' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-700">تعداد اقساط:</label>
+                        <select
+                          value={installmentMonths}
+                          onChange={(e) => handleInstallmentPreview(Number(e.target.value))}
+                          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          {[2, 3, 4, 5, 6].map((n) => (
+                            <option key={n} value={n}>{toPersianNumber(n)} ماهه</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {installmentPreview && (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">پیش‌پرداخت (۳۰٪):</span>
+                            <span className="font-bold text-gray-900">
+                              {formatPrice(installmentPreview.downPayment)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">مبلغ هر قسط:</span>
+                            <span className="font-bold text-gray-900">
+                              {formatPrice(installmentPreview.monthlyAmount)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-blue-600">
+                            پیش‌پرداخت هم‌اکنون و اقساط هر ۳۰ روز
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button
                 fullWidth
                 size="lg"
@@ -274,7 +381,9 @@ export default function CartPage() {
                 isLoading={isCheckingOut}
               >
                 <ShoppingBag className="w-5 h-5 ml-2" />
-                تکمیل خرید
+                {paymentMode === 'installment'
+                  ? `پرداخت پیش‌پرداخت (${installmentPreview ? formatPrice(installmentPreview.downPayment) : '...'})`
+                  : 'تکمیل خرید'}
               </Button>
 
               <Link

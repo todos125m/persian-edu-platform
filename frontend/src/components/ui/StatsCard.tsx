@@ -7,7 +7,7 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  color?: 'primary' | 'green' | 'yellow' | 'purple';
+  color?: 'primary' | 'green' | 'yellow' | 'purple' | 'cyan';
   trend?: { value: number; isUp: boolean };
 }
 
@@ -27,6 +27,10 @@ const colorStyles = {
   purple: {
     bg: 'bg-purple-100',
     text: 'text-purple-600',
+  },
+  cyan: {
+    bg: 'bg-cyan-100',
+    text: 'text-cyan-600',
   },
 };
 

@@ -19,7 +19,6 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    // Check if email exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -28,17 +27,13 @@ export class AuthService {
       throw new ConflictException('این ایمیل قبلاً ثبت شده است');
     }
 
-    // Check phone if provided
-    if (dto.phone) {
-      const existingPhone = await this.prisma.user.findUnique({
-        where: { phone: dto.phone },
-      });
-      if (existingPhone) {
-        throw new ConflictException('این شماره موبایل قبلاً ثبت شده است');
-      }
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: dto.phone },
+    });
+    if (existingPhone) {
+      throw new ConflictException('این شماره موبایل قبلاً ثبت شده است');
     }
 
-    // Get default user role
     const userRole = await this.prisma.role.findUnique({
       where: { name: 'user' },
     });
@@ -47,10 +42,8 @@ export class AuthService {
       throw new BadRequestException('خطای سیستمی: نقش کاربر یافت نشد');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 12);
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -58,20 +51,22 @@ export class AuthService {
         password: hashedPassword,
         firstName: dto.firstName,
         lastName: dto.lastName,
+        grade: dto.grade || null,
         roleId: userRole.id,
       },
       select: {
         id: true,
         email: true,
+        phone: true,
         firstName: true,
         lastName: true,
+        grade: true,
         role: {
           select: { name: true, nameFA: true },
         },
       },
     });
 
-    // Generate tokens
     const accessToken = this.generateToken(user.id, user.role.name);
     const refreshToken = await this.generateRefreshToken(user.id);
 
@@ -84,7 +79,6 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    // Find user by email
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: {
@@ -98,19 +92,16 @@ export class AuthService {
       throw new UnauthorizedException('ایمیل یا رمز عبور اشتباه است');
     }
 
-    // Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('حساب کاربری شما غیرفعال شده است');
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('ایمیل یا رمز عبور اشتباه است');
     }
 
-    // Generate tokens
     const accessToken = this.generateToken(user.id, user.role.name);
     const refreshToken = await this.generateRefreshToken(user.id);
 
@@ -119,9 +110,11 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        phone: user.phone,
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar,
+        grade: user.grade,
         role: user.role,
       },
       token: accessToken,
@@ -139,6 +132,7 @@ export class AuthService {
         firstName: true,
         lastName: true,
         avatar: true,
+        grade: true,
         isVerified: true,
         role: {
           select: { name: true, nameFA: true },
@@ -154,6 +148,196 @@ export class AuthService {
     return user;
   }
 
+  // ========= Forgot Password =========
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return { message: 'اگر ایمیل در سیستم ثبت شده باشد، لینک بازیابی ارسال خواهد شد' };
+    }
+
+    // Invalidate old tokens
+    await this.prisma.passwordReset.updateMany({
+      where: { userId: user.id, isUsed: false },
+      data: { isUsed: true },
+    });
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour
+
+    await this.prisma.passwordReset.create({
+      data: { token, userId: user.id, expiresAt },
+    });
+
+    // TODO: Send email with reset link when email service is ready
+    // For now, log to console in development
+    console.log(`[DEV] Password reset token for ${email}: ${token}`);
+
+    return { message: 'اگر ایمیل در سیستم ثبت شده باشد، لینک بازیابی ارسال خواهد شد' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const resetRecord = await this.prisma.passwordReset.findUnique({
+      where: { token },
+    });
+
+    if (!resetRecord || resetRecord.isUsed) {
+      throw new BadRequestException('لینک بازیابی نامعتبر یا منقضی شده است');
+    }
+
+    if (resetRecord.expiresAt < new Date()) {
+      throw new BadRequestException('لینک بازیابی منقضی شده است');
+    }
+
+    if (newPassword.length < 8) {
+      throw new BadRequestException('رمز عبور جدید باید حداقل ۸ کاراکتر باشد');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetRecord.userId },
+        data: { password: hashedPassword },
+      }),
+      this.prisma.passwordReset.update({
+        where: { id: resetRecord.id },
+        data: { isUsed: true },
+      }),
+    ]);
+
+    return { message: 'رمز عبور با موفقیت تغییر کرد' };
+  }
+
+  // ========= OTP & Phone-based forgot password =========
+
+  async sendOtp(phone: string, type: 'VERIFY' | 'FORGOT_PASSWORD') {
+    // Invalidate old OTPs for this phone+type
+    await this.prisma.otp.updateMany({
+      where: { phone, type, isUsed: false },
+      data: { isUsed: true },
+    });
+
+    // Generate 5-digit code
+    const code = Math.floor(10000 + Math.random() * 90000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 3); // 3 minutes
+
+    await this.prisma.otp.create({
+      data: { phone, code, type, expiresAt },
+    });
+
+    // TODO: Send SMS via panel (Kavenegar, Ghasedak, etc.)
+    console.log(`[DEV] OTP for ${phone} (${type}): ${code}`);
+
+    return { message: 'کد تایید ارسال شد', expiresInSeconds: 180 };
+  }
+
+  async verifyOtp(phone: string, code: string, type: string) {
+    const otp = await this.prisma.otp.findFirst({
+      where: {
+        phone,
+        type: type as any,
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otp) {
+      throw new BadRequestException('کد تایید نامعتبر یا منقضی شده است');
+    }
+
+    if (otp.attempts >= 5) {
+      throw new BadRequestException('تعداد تلاش‌ها بیش از حد مجاز. لطفا کد جدید درخواست کنید');
+    }
+
+    if (otp.code !== code) {
+      await this.prisma.otp.update({
+        where: { id: otp.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new BadRequestException('کد تایید اشتباه است');
+    }
+
+    // For FORGOT_PASSWORD, don't consume the OTP here - it will be consumed by resetPasswordByPhone
+    if (type !== 'FORGOT_PASSWORD') {
+      await this.prisma.otp.update({
+        where: { id: otp.id },
+        data: { isUsed: true },
+      });
+    }
+
+    if (type === 'VERIFY') {
+      await this.prisma.user.updateMany({
+        where: { phone },
+        data: { isVerified: true },
+      });
+    }
+
+    return { message: 'کد تایید صحیح است', verified: true };
+  }
+
+  async forgotPasswordByPhone(phone: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+    });
+
+    if (!user) {
+      return { message: 'اگر شماره در سیستم ثبت شده باشد، کد بازیابی ارسال خواهد شد' };
+    }
+
+    return this.sendOtp(phone, 'FORGOT_PASSWORD');
+  }
+
+  async resetPasswordByPhone(phone: string, code: string, newPassword: string) {
+    const otp = await this.prisma.otp.findFirst({
+      where: {
+        phone,
+        type: 'FORGOT_PASSWORD',
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otp || otp.code !== code) {
+      throw new BadRequestException('کد تایید نامعتبر یا منقضی شده است');
+    }
+
+    if (newPassword.length < 8) {
+      throw new BadRequestException('رمز عبور جدید باید حداقل ۸ کاراکتر باشد');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      throw new BadRequestException('کاربر یافت نشد');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      }),
+      this.prisma.otp.update({
+        where: { id: otp.id },
+        data: { isUsed: true },
+      }),
+    ]);
+
+    return { message: 'رمز عبور با موفقیت تغییر کرد' };
+  }
+
+  // ========= Token helpers =========
+
   private generateToken(userId: string, role: string): string {
     return this.jwtService.sign(
       { sub: userId, role },
@@ -164,7 +348,7 @@ export class AuthService {
   private async generateRefreshToken(userId: string): Promise<string> {
     const token = crypto.randomBytes(64).toString('hex');
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
     await this.prisma.refreshToken.create({
       data: { token, userId, expiresAt },
@@ -191,13 +375,11 @@ export class AuthService {
       throw new UnauthorizedException('توکن منقضی شده است');
     }
 
-    // Revoke old token (rotation)
     await this.prisma.refreshToken.update({
       where: { id: tokenRecord.id },
       data: { isRevoked: true },
     });
 
-    // Generate new tokens
     const newAccessToken = this.generateToken(tokenRecord.userId, tokenRecord.user.role.name);
     const newRefreshToken = await this.generateRefreshToken(tokenRecord.userId);
 

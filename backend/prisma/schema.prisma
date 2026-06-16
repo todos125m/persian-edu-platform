@@ -34,11 +34,12 @@ model Role {
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
-  phone         String?   @unique
+  phone         String    @unique
   password      String
   firstName     String    @map("first_name")
   lastName      String    @map("last_name")
   avatar        String?
+  grade         UserGrade? // پایه تحصیلی
   isActive      Boolean   @default(true) @map("is_active")
   isVerified    Boolean   @default(false) @map("is_verified")
   
@@ -52,6 +53,12 @@ model User {
   reviews       Review[]
   quizAttempts  QuizAttempt[]
   certificates  Certificate[]
+  wishlists     Wishlist[]
+  notifications Notification[]
+  taughtCourses  Course[]       @relation("InstructorCourses")
+  courseViews    CourseView[]
+  tickets        Ticket[]
+  ticketMessages TicketMessage[]
 
   deletedAt     DateTime? @map("deleted_at")
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -62,6 +69,36 @@ model User {
   @@index([roleId])
   @@index([deletedAt])
   @@map("users")
+}
+
+enum UserGrade {
+  GRADE_10     // دهم
+  GRADE_11     // یازدهم
+  GRADE_12     // دوازدهم
+  GRADUATED    // فارغ‌التحصیل
+}
+
+// =============================================================================
+// کد تایید پیامکی - OTP
+// =============================================================================
+model Otp {
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  type      OtpType  @default(VERIFY)   // نوع: تایید شماره یا بازیابی رمز
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  attempts  Int      @default(0)        // تعداد تلاش‌های نادرست
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone, type])
+  @@index([phone, code])
+  @@map("otps")
+}
+
+enum OtpType {
+  VERIFY          // تایید شماره موبایل
+  FORGOT_PASSWORD // بازیابی رمز عبور
 }
 
 // =============================================================================
@@ -110,6 +147,7 @@ model Course {
   duration        Int          @default(0)
   lessonsCount    Int          @default(0) @map("lessons_count")
   studentsCount   Int          @default(0) @map("students_count")
+  viewCount       Int          @default(0) @map("view_count")
   
   level           CourseLevel  @default(BEGINNER)
   status          CourseStatus @default(DRAFT)
@@ -117,14 +155,21 @@ model Course {
   
   categoryId      String       @map("category_id")
   category        Category     @relation(fields: [categoryId], references: [id])
-  
+
+  instructorId    String?      @map("instructor_id")
+  instructor      User?        @relation("InstructorCourses", fields: [instructorId], references: [id])
+
+  sections        Section[]
   lessons         Lesson[]
   userCourses     UserCourse[]
   orderItems      OrderItem[]
   reviews         Review[]
   quizzes         Quiz[]
   certificates    Certificate[]
-  
+  tags            CourseTag[]
+  wishlists       Wishlist[]
+  courseViews     CourseView[]
+
   metaTitle       String?      @map("meta_title")
   metaDescription String?      @map("meta_description")
   
@@ -137,6 +182,7 @@ model Course {
   @@index([status])
   @@index([isFeatured])
   @@index([status, isFeatured])
+  @@index([instructorId])
   @@map("courses")
 }
 
@@ -153,6 +199,50 @@ enum CourseStatus {
 }
 
 // =============================================================================
+// بازدید دوره‌ها - Course Views
+// =============================================================================
+model CourseView {
+  id        String   @id @default(uuid())
+
+  courseId   String   @map("course_id")
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  ip        String?
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+
+  @@index([courseId])
+  @@index([userId])
+  @@index([viewedAt])
+  @@index([courseId, viewedAt])
+  @@map("course_views")
+}
+
+// =============================================================================
+// بخش‌ها - Sections
+// =============================================================================
+model Section {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  courseId     String   @map("course_id")
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  lessons      Lesson[]
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([courseId])
+  @@index([courseId, sortOrder])
+  @@map("sections")
+}
+
+// =============================================================================
 // درس‌ها - Lessons
 // =============================================================================
 model Lesson {
@@ -162,16 +252,23 @@ model Lesson {
   sortOrder   Int      @default(0) @map("sort_order")
   isFree      Boolean  @default(false) @map("is_free")
   isPublished Boolean  @default(false) @map("is_published")
-  
+
   courseId    String   @map("course_id")
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+
+  sectionId  String?  @map("section_id")
+  section     Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
   video       Video?
-  
+
+  pdfUrl      String?  @map("pdf_url")
+  pdfName     String?  @map("pdf_name")
+
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@index([courseId])
+  @@index([sectionId])
   @@index([sortOrder])
   @@index([courseId, sortOrder])
   @@map("lessons")
@@ -196,8 +293,11 @@ model Video {
   lessonId     String        @unique @map("lesson_id")
   lesson       Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   
+  hlsPath      String?       @map("hls_path")
+
   progress     VideoProgress[]
-  
+  qualities    VideoQuality[]
+
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
@@ -208,8 +308,31 @@ model Video {
 
 enum VideoStatus {
   PROCESSING
+  TRANSCODING
   READY
   ERROR
+}
+
+// =============================================================================
+// کیفیت‌های ویدیو - Video Qualities (HLS variants)
+// =============================================================================
+model VideoQuality {
+  id          String   @id @default(uuid())
+
+  videoId     String   @map("video_id")
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  quality     String   // e.g. "1080p", "720p", "480p", "360p"
+  resolution  String   // e.g. "1920x1080"
+  bitrate     Int      // kbps
+  storageKey  String   @map("storage_key") // path to quality-specific playlist
+  size        BigInt   @default(0)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([videoId, quality])
+  @@index([videoId])
+  @@map("video_qualities")
 }
 
 // =============================================================================
@@ -251,8 +374,9 @@ model UserCourse {
   course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   progress    Int       @default(0)
+  isLocked    Boolean   @default(false) @map("is_locked") // قفل بخاطر عدم پرداخت قسط
   completedAt DateTime? @map("completed_at")
-  
+
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
@@ -281,6 +405,7 @@ model Order {
 
   items          OrderItem[]
   payment        Payment?
+  installmentPlan InstallmentPlan?
   discountCode   DiscountCode? @relation(fields: [couponCode], references: [code])
   
   createdAt      DateTime    @default(now()) @map("created_at")
@@ -555,6 +680,22 @@ enum DiscountType {
 }
 
 // =============================================================================
+// بازیابی رمز عبور - Password Resets
+// =============================================================================
+model PasswordReset {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_resets")
+}
+
+// =============================================================================
 // گواهینامه‌ها - Certificates
 // =============================================================================
 model Certificate {
@@ -575,4 +716,208 @@ model Certificate {
   @@index([userId])
   @@index([courseId])
   @@map("certificates")
+}
+
+// =============================================================================
+// تگ‌ها - Tags
+// =============================================================================
+model Tag {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  slug      String      @unique
+
+  courses   CourseTag[]
+
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([slug])
+  @@map("tags")
+}
+
+model CourseTag {
+  id        String   @id @default(uuid())
+
+  courseId   String   @map("course_id")
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  tagId     String   @map("tag_id")
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, tagId])
+  @@index([courseId])
+  @@index([tagId])
+  @@map("course_tags")
+}
+
+// =============================================================================
+// علاقه‌مندی‌ها - Wishlists
+// =============================================================================
+model Wishlist {
+  id        String   @id @default(uuid())
+
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId   String   @map("course_id")
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("wishlists")
+}
+
+// =============================================================================
+// اعلان‌ها - Notifications
+// =============================================================================
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, order, course
+  link      String?
+  isRead    Boolean  @default(false) @map("is_read")
+
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// پیام‌های تماس - Contact Messages
+// =============================================================================
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// =============================================================================
+// تیکت پشتیبانی - Support Tickets
+// =============================================================================
+model Ticket {
+  id         String         @id @default(uuid())
+  subject    String
+  status     TicketStatus   @default(OPEN)
+  priority   TicketPriority @default(MEDIUM)
+  department String         @default("support") // support, technical, financial
+
+  userId     String         @map("user_id")
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages   TicketMessage[]
+
+  closedAt   DateTime?      @map("closed_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid())
+  body      String
+  isAdmin   Boolean  @default(false) @map("is_admin")
+
+  ticketId  String   @map("ticket_id")
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ticketId])
+  @@map("ticket_messages")
+}
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  WAITING
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// =============================================================================
+// پرداخت اقساطی - Installment Plans
+// =============================================================================
+model InstallmentPlan {
+  id              String             @id @default(uuid())
+
+  orderId         String             @unique @map("order_id")
+  order           Order              @relation(fields: [orderId], references: [id])
+
+  totalAmount     Decimal            @map("total_amount") @db.Decimal(12, 0)
+  downPayment     Decimal            @map("down_payment") @db.Decimal(12, 0)   // پیش‌پرداخت
+  monthlyAmount   Decimal            @map("monthly_amount") @db.Decimal(12, 0) // مبلغ هر قسط
+  totalInstallments Int              @map("total_installments")                 // تعداد اقساط
+  paidInstallments  Int              @default(0) @map("paid_installments")      // اقساط پرداخت شده
+
+  status          InstallmentStatus  @default(ACTIVE)
+
+  installments    Installment[]
+
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([status])
+  @@map("installment_plans")
+}
+
+model Installment {
+  id              String            @id @default(uuid())
+
+  planId          String            @map("plan_id")
+  plan            InstallmentPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  installmentNumber Int             @map("installment_number")
+  amount          Decimal           @db.Decimal(12, 0)
+  dueDate         DateTime          @map("due_date")
+
+  status          PaymentStatus     @default(PENDING)
+  paidAt          DateTime?         @map("paid_at")
+  authority       String?
+  refId           String?           @map("ref_id")
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@index([planId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("installments")
+}
+
+enum InstallmentStatus {
+  ACTIVE      // اقساط فعال
+  COMPLETED   // تمام اقساط پرداخت شده
+  OVERDUE     // معوق
+  CANCELLED   // لغو شده
 }

@@ -245,13 +245,13 @@ function CategoryFormModal({
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="نام فارسی"
-            placeholder="برنامه‌نویسی"
+            placeholder="ریاضی دهم"
             error={errors.nameFA?.message}
             {...register('nameFA')}
           />
           <Input
             label="نام انگلیسی"
-            placeholder="programming"
+            placeholder="math-10"
             dir="ltr"
             error={errors.name?.message}
             {...register('name', {
@@ -263,7 +263,7 @@ function CategoryFormModal({
         </div>
         <Input
           label="آدرس (Slug)"
-          placeholder="programming"
+          placeholder="math-10"
           dir="ltr"
           error={errors.slug?.message}
           {...register('slug')}

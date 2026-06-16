@@ -180,6 +180,13 @@ export default function AdminCoursesPage() {
       ),
     },
     {
+      key: 'viewCount',
+      header: 'بازدید',
+      render: (row) => (
+        <span className="text-gray-600">{toPersianNumber(row.viewCount || 0)}</span>
+      ),
+    },
+    {
       key: 'isFeatured',
       header: 'ویژه',
       render: (row) => (
